@@ -24,7 +24,7 @@ interface Grade {
 interface Props {
   student: { name: string; admissionNumber: string; gender: string | null };
   grades: Grade[];
-  school: { name: string; address: string; motto?: string | null };
+  school: { name: string; address: string; motto?: string | null; logoUrl?: string | null };
   session: string;
   term: string;
   className: string;
@@ -37,7 +37,19 @@ export function ReportCardPrint({ student, grades, school, session, term, classN
 
   return (
     <Card>
-      <CardHeader className="border-b pb-4">
+      <CardHeader className="border-b pb-6">
+        <div className="flex flex-col items-center text-center mb-4 space-y-2">
+          {school.logoUrl && (
+            <img src={school.logoUrl} alt={school.name} className="h-16 w-auto" />
+          )}
+          <div>
+            <h1 className="font-bold text-lg">{school.name}</h1>
+            {school.motto && (
+              <p className="text-xs text-muted-foreground italic">&quot;{school.motto}&quot;</p>
+            )}
+            <p className="text-xs text-muted-foreground">{school.address}</p>
+          </div>
+        </div>
         <div className="flex items-center justify-between">
           <div>
             <h2 className="font-bold text-lg">Report Card</h2>

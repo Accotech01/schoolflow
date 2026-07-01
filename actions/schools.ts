@@ -17,6 +17,7 @@ const createSchoolSchema = z.object({
   phone: z.string().min(7),
   email: z.string().email(),
   motto: z.string().optional(),
+  logoUrl: z.string().optional(),
   adminName: z.string().min(2),
   adminEmail: z.string().email(),
   adminPassword: z.string().min(8),
@@ -30,7 +31,7 @@ export async function createSchoolWithAdmin(data: unknown) {
   }
 
   const {
-    schoolName, slug, address, city, state, phone, email, motto,
+    schoolName, slug, address, city, state, phone, email, motto, logoUrl,
     adminName, adminEmail, adminPassword, adminPhone,
   } = parsed.data;
 
@@ -59,6 +60,7 @@ export async function createSchoolWithAdmin(data: unknown) {
     phone,
     email,
     motto: motto || null,
+    logoUrl: logoUrl || null,
     subscriptionStatus: "trial",
   }).returning();
 

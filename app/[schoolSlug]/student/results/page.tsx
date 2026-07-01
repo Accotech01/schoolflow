@@ -5,6 +5,7 @@ import {
   grades,
   studentEnrollments,
   academicSessions,
+  schools,
 } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { Topbar } from "@/components/nav/topbar";
@@ -27,6 +28,10 @@ export default async function StudentResultsPage({ params }: Props) {
 
   const student = await db.query.students.findFirst({
     where: eq(students.id, studentId),
+  });
+
+  const school = await db.query.schools.findFirst({
+    where: eq(schools.id, schoolId),
   });
 
   const activeSession = await db.query.academicSessions.findFirst({
@@ -108,6 +113,18 @@ export default async function StudentResultsPage({ params }: Props) {
         </div>
       )}
       <div className="p-6 space-y-6" id="results-content">
+        {/* School Header with Logo */}
+        {activeSession && school && (
+          <div className="flex flex-col items-center text-center space-y-2 pb-4 border-b">
+            {school.logoUrl && (
+              <img src={school.logoUrl} alt={school.name} className="h-20 w-auto" />
+            )}
+            <h1 className="text-2xl font-bold">{school.name}</h1>
+            {school.motto && (
+              <p className="text-sm text-muted-foreground italic">&quot;{school.motto}&quot;</p>
+            )}
+          </div>
+        )}
 
         {!activeSession ? (
           <Card className="border-yellow-200 bg-yellow-50">

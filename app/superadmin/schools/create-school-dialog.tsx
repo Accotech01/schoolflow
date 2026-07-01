@@ -30,6 +30,7 @@ export function CreateSchoolDialog() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [form, setForm] = useState({
     schoolName: "",
     slug: "",
@@ -39,6 +40,7 @@ export function CreateSchoolDialog() {
     phone: "",
     email: "",
     motto: "",
+    logoUrl: "",
     adminName: "",
     adminEmail: "",
     adminPassword: "",
@@ -55,6 +57,30 @@ export function CreateSchoolDialog() {
     setForm((f) => ({ ...f, schoolName: name, slug }));
   };
 
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please select a valid image file');
+        return;
+      }
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Image size must be less than 5MB');
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setForm((f) => ({ ...f, logoUrl: base64String }));
+        setLogoPreview(base64String);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -65,9 +91,10 @@ export function CreateSchoolDialog() {
         setOpen(false);
         setForm({
           schoolName: "", slug: "", address: "", city: "", state: "",
-          phone: "", email: "", motto: "",
+          phone: "", email: "", motto: "", logoUrl: "",
           adminName: "", adminEmail: "", adminPassword: "", adminPhone: "",
         });
+        setLogoPreview(null);
         router.refresh();
       } else {
         toast.error(result.error || "Failed to create school");
@@ -181,6 +208,28 @@ export function CreateSchoolDialog() {
                 onChange={(e) => setForm({ ...form, motto: e.target.value })}
                 placeholder="e.g. Excellence in Education"
               />
+            </div>
+            <div className="col-span-2 space-y-2">
+              <Label>School Logo</Label>
+              <div className="flex flex-col gap-3">
+                {logoPreview && (
+                  <div className="flex justify-center p-3 bg-gray-50 rounded-lg border">
+                    <img src={logoPreview} alt="Logo preview" className="h-24 w-auto" />
+                  </div>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoChange}
+                  className="block w-full text-sm text-gray-500
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-lg file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-blue-50 file:text-blue-700
+                    hover:file:bg-blue-100"
+                />
+                <p className="text-xs text-muted-foreground">PNG, JPG, GIF up to 5MB</p>
+              </div>
             </div>
 
             {/* Admin Account */}
