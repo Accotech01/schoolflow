@@ -19,7 +19,11 @@ export const sessionStatusEnum = pgEnum("session_status", [
   "active",
   "completed",
 ]);
-export const termStatusEnum = pgEnum("term_status", ["active", "completed"]);
+export const termStatusEnum = pgEnum("term_status", [
+  "upcoming",
+  "active",
+  "completed",
+]);
 export const promotionStatusEnum = pgEnum("promotion_status", [
   "auto_promoted",
   "manual_promoted",
@@ -79,6 +83,8 @@ export const schoolAdmins = pgTable("school_admins", {
   passwordHash: text("password_hash").notNull(),
   phone: text("phone"),
   status: userStatusEnum("status").notNull().default("active"),
+  lastPaymentDate: timestamp("last_payment_date"),
+  nextPaymentDueDate: timestamp("next_payment_due_date"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

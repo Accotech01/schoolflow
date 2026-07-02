@@ -1,4 +1,4 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { authConfig } from "./auth.config";
 import { db } from "@/lib/db";
@@ -11,6 +11,10 @@ import {
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+
+export class AccountDeactivatedError extends CredentialsSignin {
+  code = "account_deactivated";
+}
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -60,10 +64,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               where: eq(schoolAdmins.email, email),
               with: { school: true },
             });
-            if (!admin || admin.status !== "active") return null;
+            if (!admin) return null;
             if (schoolSlug && admin.school.slug !== schoolSlug) return null;
             const match = await bcrypt.compare(password, admin.passwordHash);
             if (!match) return null;
+            if (admin.status !== "active") throw new AccountDeactivatedError();
             return {
               id: admin.id,
               email: admin.email,
@@ -114,6 +119,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           return null;
         } catch (error) {
+          if (error instanceof AccountDeactivatedError) throw error;
           console.error("Auth error:", error);
           return null;
         }

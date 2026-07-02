@@ -4,8 +4,9 @@ import { eq } from "drizzle-orm";
 import { Topbar } from "@/components/nav/topbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatDate } from "@/lib/utils";
+import { formatDate, isPaymentOverdue } from "@/lib/utils";
 import { Users, Building2, Mail, Calendar } from "lucide-react";
+import { ManageAdminAccessDialog } from "./manage-access-dialog";
 
 export default async function AdminsPage() {
   const admins = await db.query.schoolAdmins.findMany({
@@ -79,7 +80,10 @@ export default async function AdminsPage() {
                       <th className="text-left px-4 py-3 font-medium">School</th>
                       <th className="text-left px-4 py-3 font-medium">Email</th>
                       <th className="text-center px-4 py-3 font-medium">Status</th>
+                      <th className="text-left px-4 py-3 font-medium">Last Payment</th>
+                      <th className="text-left px-4 py-3 font-medium">Next Due</th>
                       <th className="text-left px-4 py-3 font-medium">Joined</th>
+                      <th className="text-right px-4 py-3 font-medium">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -119,11 +123,39 @@ export default async function AdminsPage() {
                             {admin.status}
                           </Badge>
                         </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {formatDate(admin.lastPaymentDate)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={
+                              isPaymentOverdue(admin.nextPaymentDueDate)
+                                ? "text-red-600 font-medium"
+                                : "text-muted-foreground"
+                            }
+                          >
+                            {formatDate(admin.nextPaymentDueDate)}
+                            {isPaymentOverdue(admin.nextPaymentDueDate) && (
+                              <Badge variant="destructive" className="ml-2 align-middle">
+                                Overdue
+                              </Badge>
+                            )}
+                          </span>
+                        </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1 text-muted-foreground">
                             <Calendar className="h-3.5 w-3.5" />
                             <span>{formatDate(admin.createdAt)}</span>
                           </div>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <ManageAdminAccessDialog
+                            adminId={admin.id}
+                            adminName={admin.name}
+                            status={admin.status}
+                            lastPaymentDate={admin.lastPaymentDate}
+                            nextPaymentDueDate={admin.nextPaymentDueDate}
+                          />
                         </td>
                       </tr>
                     ))}
@@ -138,7 +170,7 @@ export default async function AdminsPage() {
           <CardContent className="pt-4">
             <p className="text-sm text-blue-800">
               <strong>Note:</strong> School administrators are automatically created when you create a school.
-              To add or update an administrator, visit the school&apos;s detail page.
+              Use &quot;Manage Access&quot; to deactivate a login or set payment dates. To add a new administrator, visit the school&apos;s detail page.
             </p>
           </CardContent>
         </Card>

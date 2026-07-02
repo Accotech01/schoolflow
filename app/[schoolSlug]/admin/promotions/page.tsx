@@ -8,28 +8,40 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { GeneratePromotionsButton } from "./generate-promotions-button";
+import { ExecutePromotionsButton } from "./execute-promotions-button";
 import { ProcessPromotionDialog } from "./process-promotion-dialog";
+import { SessionSelector } from "./session-selector";
 import { getGradeColor } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
 interface Props {
   params: Promise<{ schoolSlug: string }>;
+  searchParams: Promise<{ session?: string }>;
 }
 
-export default async function PromotionsPage({ params }: Props) {
+export default async function PromotionsPage({ params, searchParams }: Props) {
   const { schoolSlug } = await params;
+  const { session: sessionParam } = await searchParams;
   const session = await auth();
   const schoolId = session!.user.schoolId!;
 
-  const activeSession = await db.query.academicSessions.findFirst({
-    where: and(eq(academicSessions.schoolId, schoolId), eq(academicSessions.status, "active")),
+  const allSessions = await db.query.academicSessions.findMany({
+    where: eq(academicSessions.schoolId, schoolId),
+    orderBy: (s, { desc }) => [desc(s.createdAt)],
   });
 
-  const allPromotions = activeSession
+  const activeSession = allSessions.find((s) => s.status === "active");
+  const lastCompletedSession = allSessions.find((s) => s.status === "completed");
+
+  const selectedSession =
+    (sessionParam && allSessions.find((s) => s.id === sessionParam)) ||
+    lastCompletedSession ||
+    activeSession;
+
+  const allPromotions = selectedSession
     ? await db.query.promotions.findMany({
-        where: and(eq(promotions.schoolId, schoolId), eq(promotions.sessionId, activeSession.id)),
+        where: and(eq(promotions.schoolId, schoolId), eq(promotions.sessionId, selectedSession.id)),
         with: { student: true, fromClass: true, toClass: true },
         orderBy: (p, { asc }) => [asc(p.averageGrade)],
       })
@@ -39,6 +51,16 @@ export default async function PromotionsPage({ params }: Props) {
     where: eq(classes.schoolId, schoolId),
     orderBy: (c, { asc }) => [asc(c.level)],
   });
+
+  const executableCount = allPromotions.filter(
+    (p) => (p.status === "auto_promoted" || p.status === "manual_promoted") && p.toClassId
+  ).length;
+  const canExecute =
+    !!selectedSession &&
+    selectedSession.status === "completed" &&
+    !!activeSession &&
+    activeSession.id !== selectedSession.id &&
+    executableCount > 0;
 
   const stats = {
     total: allPromotions.length,
@@ -52,14 +74,35 @@ export default async function PromotionsPage({ params }: Props) {
     <div>
       <Topbar title="Promotions" subtitle="End of session student promotion management" />
       <div className="p-6 space-y-6">
-        {!activeSession ? (
+        {allSessions.length > 0 && selectedSession && (
+          <div className="flex items-center gap-3">
+            <SessionSelector schoolSlug={schoolSlug} sessions={allSessions} selectedId={selectedSession.id} />
+            <Badge variant={selectedSession.status === "active" ? "success" : "secondary"} className="capitalize">
+              {selectedSession.status}
+            </Badge>
+          </div>
+        )}
+
+        {!selectedSession ? (
           <Card className="border-yellow-200 bg-yellow-50">
             <CardContent className="pt-6">
-              <p className="text-yellow-800">No active academic session found.</p>
+              <p className="text-yellow-800">No academic sessions found yet.</p>
             </CardContent>
           </Card>
         ) : (
           <>
+            {selectedSession.status === "active" && (
+              <Card className="border-blue-200 bg-blue-50">
+                <CardContent className="pt-4">
+                  <p className="text-sm text-blue-800">
+                    <strong>{selectedSession.name}</strong> is still in progress. Promotions are
+                    calculated automatically once you end this session or start a new one from
+                    Sessions &amp; Terms.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               {[
@@ -77,12 +120,25 @@ export default async function PromotionsPage({ params }: Props) {
             </div>
 
             {/* Actions */}
-            <div className="flex gap-3">
-              <GeneratePromotionsButton sessionId={activeSession.id} schoolId={schoolId} />
-              <p className="text-sm text-muted-foreground self-center">
-                Session: <strong>{activeSession.name}</strong>
-              </p>
-            </div>
+            {selectedSession.status === "completed" && (
+              <div className="flex flex-wrap items-center gap-3">
+                <GeneratePromotionsButton sessionId={selectedSession.id} schoolId={schoolId} />
+                {canExecute && (
+                  <ExecutePromotionsButton sessionId={selectedSession.id} schoolId={schoolId} />
+                )}
+                {!activeSession && (
+                  <p className="text-sm text-muted-foreground">
+                    Create a new academic session before executing promotions, so promoted
+                    students have a class to move into.
+                  </p>
+                )}
+                {stats.pending > 0 && (
+                  <p className="text-sm text-yellow-700">
+                    {stats.pending} student(s) still awaiting a manual decision.
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Table */}
             <Card>

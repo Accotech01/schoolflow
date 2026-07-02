@@ -8,10 +8,12 @@ import {
   grades,
   academicSessions,
   terms,
+  schoolAdmins,
 } from "@/lib/db/schema";
 import { eq, and, count } from "drizzle-orm";
 import { Topbar } from "@/components/nav/topbar";
 import { StatCard } from "@/components/dashboard/stat-card";
+import { PaymentStatusBanner } from "@/components/dashboard/payment-status-banner";
 import {
   GraduationCap,
   Users,
@@ -32,6 +34,10 @@ export default async function AdminDashboard({ params }: Props) {
   const { schoolSlug } = await params;
   const session = await auth();
   const schoolId = session!.user.schoolId!;
+
+  const currentAdmin = await db.query.schoolAdmins.findFirst({
+    where: eq(schoolAdmins.id, session!.user.id),
+  });
 
   const [[studentCount], [teacherCount], [classCount], [subjectCount]] =
     await Promise.all([
@@ -71,6 +77,13 @@ export default async function AdminDashboard({ params }: Props) {
         subtitle={activeSession ? `${activeSession.name} — ${activeTerm?.name || ""} Term` : "No active session"}
       />
       <div className="p-6 space-y-6">
+        {currentAdmin && (
+          <PaymentStatusBanner
+            status={currentAdmin.status}
+            nextPaymentDueDate={currentAdmin.nextPaymentDueDate}
+          />
+        )}
+
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard

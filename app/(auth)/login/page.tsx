@@ -62,7 +62,14 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        toast.error("Invalid credentials. Please check your details and try again.");
+        if (result.code === "account_deactivated") {
+          toast.error(
+            "Your account has been deactivated. Please contact the super administrator to restore access.",
+            { duration: 8000 }
+          );
+        } else {
+          toast.error("Invalid credentials. Please check your details and try again.");
+        }
         return;
       }
 

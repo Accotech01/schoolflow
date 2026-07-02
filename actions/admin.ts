@@ -17,38 +17,101 @@ import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/auth";
+import { generatePromotions } from "./promotions";
 
 // ─── Sessions & Terms ─────────────────────────────────────────────────────────
+
+// Ends whichever session is currently active for the school: marks its terms
+// and itself as completed, then initiates promotions for it. Reused by
+// createSession (implicit end-of-year rollover) and endCurrentSession
+// (explicit "End Session" action).
+async function endActiveSession(schoolId: string) {
+  const previousActive = await db.query.academicSessions.findFirst({
+    where: and(eq(academicSessions.schoolId, schoolId), eq(academicSessions.status, "active")),
+  });
+  if (!previousActive) return null;
+
+  await db.update(terms)
+    .set({ status: "completed", updatedAt: new Date() })
+    .where(eq(terms.sessionId, previousActive.id));
+
+  await db.update(academicSessions)
+    .set({ status: "completed", updatedAt: new Date() })
+    .where(eq(academicSessions.id, previousActive.id));
+
+  const { created } = await generatePromotions(previousActive.id, schoolId);
+  return { session: previousActive, promotionsInitiated: created };
+}
+
 export async function createSession(schoolId: string, name: string) {
-  // Mark existing active sessions as completed
-  await db
-    .update(academicSessions)
-    .set({ status: "completed" })
-    .where(and(eq(academicSessions.schoolId, schoolId), eq(academicSessions.status, "active")));
+  // End whichever session is currently active (completes its terms and
+  // kicks off promotion generation for it) before starting the new one.
+  const ended = await endActiveSession(schoolId);
 
   const [session] = await db
     .insert(academicSessions)
     .values({ schoolId, name, status: "active" })
     .returning();
 
-  // Auto-create 3 terms
+  // Auto-create 3 terms — only the first is active; the rest are upcoming
+  // until the admin advances through them.
   await db.insert(terms).values([
     { sessionId: session.id, schoolId, name: "First", status: "active" },
-    { sessionId: session.id, schoolId, name: "Second", status: "active" },
-    { sessionId: session.id, schoolId, name: "Third", status: "active" },
+    { sessionId: session.id, schoolId, name: "Second", status: "upcoming" },
+    { sessionId: session.id, schoolId, name: "Third", status: "upcoming" },
   ]);
 
   revalidatePath(`/[schoolSlug]/admin/sessions`);
-  return { success: true, session };
+  revalidatePath(`/[schoolSlug]/admin/promotions`);
+  return { success: true, session, promotionsInitiated: ended?.promotionsInitiated ?? 0 };
+}
+
+export async function endCurrentSession(schoolId: string) {
+  const ended = await endActiveSession(schoolId);
+  if (!ended) return { success: false, error: "No active session found" };
+
+  revalidatePath(`/[schoolSlug]/admin/sessions`);
+  revalidatePath(`/[schoolSlug]/admin/promotions`);
+  return { success: true, promotionsInitiated: ended.promotionsInitiated };
 }
 
 export async function setActiveTerm(termId: string, schoolId: string) {
-  // Get the session for this term
   const term = await db.query.terms.findFirst({ where: eq(terms.id, termId) });
-  if (!term) return { success: false, error: "Term not found" };
+  if (!term || term.schoolId !== schoolId) {
+    return { success: false, error: "Term not found" };
+  }
+
+  // Only one term per session may be active at a time — whatever was active
+  // before is now considered completed.
+  await db.update(terms)
+    .set({ status: "completed", updatedAt: new Date() })
+    .where(and(eq(terms.sessionId, term.sessionId), eq(terms.status, "active")));
 
   await db.update(terms)
-    .set({ status: "active" })
+    .set({ status: "active", updatedAt: new Date() })
+    .where(eq(terms.id, termId));
+
+  revalidatePath(`/[schoolSlug]/admin/sessions`);
+  return { success: true };
+}
+
+export async function updateTermDuration(
+  termId: string,
+  schoolId: string,
+  startDate: string | null,
+  endDate: string | null
+) {
+  const term = await db.query.terms.findFirst({ where: eq(terms.id, termId) });
+  if (!term || term.schoolId !== schoolId) {
+    return { success: false, error: "Term not found" };
+  }
+
+  await db.update(terms)
+    .set({
+      startDate: startDate ? new Date(startDate) : null,
+      endDate: endDate ? new Date(endDate) : null,
+      updatedAt: new Date(),
+    })
     .where(eq(terms.id, termId));
 
   revalidatePath(`/[schoolSlug]/admin/sessions`);
@@ -344,6 +407,3 @@ export async function unenrollStudent(enrollmentId: string) {
   revalidatePath(`/[schoolSlug]/admin/students`);
   return { success: true };
 }
-
-// ─── Promotions ────────────────────────────────────────────────────────────────
-// (existing promotion functions would go here)

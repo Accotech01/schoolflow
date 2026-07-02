@@ -4,7 +4,7 @@ import { Topbar } from "@/components/nav/topbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatDate } from "@/lib/utils";
+import { formatDate, isPaymentOverdue } from "@/lib/utils";
 import Link from "next/link";
 import {
   Table,
@@ -17,6 +17,7 @@ import {
 import { ArrowLeft, Mail, Phone, MapPin } from "lucide-react";
 import { eq } from "drizzle-orm";
 import { schools } from "@/lib/db/schema";
+import { ManageAdminAccessDialog } from "@/app/superadmin/admins/manage-access-dialog";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -127,13 +128,16 @@ export default async function SchoolDetailPage({ params }: PageProps) {
                   <TableHead>Email</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Last Payment</TableHead>
+                  <TableHead>Next Due</TableHead>
                   <TableHead>Created</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {school.admins.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       No administrators assigned
                     </TableCell>
                   </TableRow>
@@ -149,7 +153,35 @@ export default async function SchoolDetailPage({ params }: PageProps) {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
+                        {formatDate(admin.lastPaymentDate)}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        <span
+                          className={
+                            isPaymentOverdue(admin.nextPaymentDueDate)
+                              ? "text-red-600 font-medium"
+                              : "text-muted-foreground"
+                          }
+                        >
+                          {formatDate(admin.nextPaymentDueDate)}
+                        </span>
+                        {isPaymentOverdue(admin.nextPaymentDueDate) && (
+                          <Badge variant="destructive" className="ml-2">
+                            Overdue
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
                         {formatDate(admin.createdAt)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <ManageAdminAccessDialog
+                          adminId={admin.id}
+                          adminName={admin.name}
+                          status={admin.status}
+                          lastPaymentDate={admin.lastPaymentDate}
+                          nextPaymentDueDate={admin.nextPaymentDueDate}
+                        />
                       </TableCell>
                     </TableRow>
                   ))

@@ -1,10 +1,54 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { schools } from "@/lib/db/schema";
+import { schools, schoolAdmins } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
+
+// ─── School Admin Access ───────────────────────────────────────────────────────
+export async function updateSchoolAdminAccess(
+  adminId: string,
+  data: {
+    status: "active" | "inactive";
+    lastPaymentDate: string | null;
+    nextPaymentDueDate: string | null;
+  }
+) {
+  try {
+    const session = await auth();
+
+    // Verify user is superadmin
+    if (session?.user?.role !== "superadmin") {
+      return { success: false, error: "Unauthorized: Only superadmins can manage admin access" };
+    }
+
+    const admin = await db.query.schoolAdmins.findFirst({
+      where: eq(schoolAdmins.id, adminId),
+    });
+
+    if (!admin) {
+      return { success: false, error: "School admin not found" };
+    }
+
+    await db
+      .update(schoolAdmins)
+      .set({
+        status: data.status,
+        lastPaymentDate: data.lastPaymentDate ? new Date(data.lastPaymentDate) : null,
+        nextPaymentDueDate: data.nextPaymentDueDate ? new Date(data.nextPaymentDueDate) : null,
+        updatedAt: new Date(),
+      })
+      .where(eq(schoolAdmins.id, adminId));
+
+    revalidatePath("/superadmin/admins");
+    revalidatePath(`/superadmin/schools/${admin.schoolId}`);
+    return { success: true, message: `Access updated for ${admin.name}` };
+  } catch (error) {
+    console.error("Error updating school admin access:", error);
+    return { success: false, error: "Failed to update admin access" };
+  }
+}
 
 // ─── Schools ──────────────────────────────────────────────────────────────────
 export async function deleteSchool(schoolId: string) {

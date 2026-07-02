@@ -48,6 +48,11 @@ export function formatDate(date: Date | string | null): string {
   });
 }
 
+export function isPaymentOverdue(nextPaymentDueDate: Date | string | null): boolean {
+  if (!nextPaymentDueDate) return false;
+  return new Date(nextPaymentDueDate).getTime() < Date.now();
+}
+
 export function generateAdmissionNumber(schoolCode: string, year: number, count: number): string {
   const paddedCount = String(count).padStart(4, "0");
   return `${schoolCode.toUpperCase()}/${year}/${paddedCount}`;

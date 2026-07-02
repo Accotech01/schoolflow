@@ -8,6 +8,20 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { CreateSessionDialog } from "./create-session-dialog";
 import { SetActiveTermButton } from "./set-active-term-button";
+import { TermDurationDialog } from "./term-duration-dialog";
+import { EndSessionButton } from "./end-session-button";
+
+const termBadgeVariant = {
+  active: "success",
+  completed: "secondary",
+  upcoming: "info",
+} as const;
+
+const termCardStyle = {
+  active: "border-green-300 bg-green-50",
+  completed: "border-gray-200 bg-gray-50",
+  upcoming: "border-blue-200 bg-blue-50/40",
+} as const;
 
 interface Props {
   params: Promise<{ schoolSlug: string }>;
@@ -28,12 +42,14 @@ export default async function SessionsPage({ params }: Props) {
     },
   });
 
+  const activeSession = allSessions.find((s) => s.status === "active");
+
   return (
     <div>
       <Topbar title="Sessions & Terms" subtitle="Manage academic calendar" />
       <div className="p-6 space-y-6">
         <div className="flex justify-end">
-          <CreateSessionDialog schoolId={schoolId} />
+          <CreateSessionDialog schoolId={schoolId} activeSessionName={activeSession?.name} />
         </div>
 
         {allSessions.length === 0 ? (
@@ -55,6 +71,9 @@ export default async function SessionsPage({ params }: Props) {
                       {academicSession.status}
                     </Badge>
                     <span className="text-xs text-muted-foreground">{formatDate(academicSession.createdAt)}</span>
+                    {academicSession.status === "active" && (
+                      <EndSessionButton schoolId={schoolId} sessionName={academicSession.name} />
+                    )}
                   </div>
                 </div>
               </CardHeader>
@@ -63,11 +82,11 @@ export default async function SessionsPage({ params }: Props) {
                   {academicSession.terms.map((term) => (
                     <div
                       key={term.id}
-                      className={`p-4 rounded-lg border ${term.status === "active" ? "border-green-300 bg-green-50" : "border-gray-200 bg-gray-50"}`}
+                      className={`p-4 rounded-lg border ${termCardStyle[term.status]}`}
                     >
                       <div className="flex items-center justify-between mb-2">
                         <h4 className="font-semibold text-sm">{term.name} Term</h4>
-                        <Badge variant={term.status === "active" ? "success" : "secondary"} className="text-xs">
+                        <Badge variant={termBadgeVariant[term.status]} className="text-xs">
                           {term.status}
                         </Badge>
                       </div>
@@ -77,6 +96,13 @@ export default async function SessionsPage({ params }: Props) {
                       {term.endDate && (
                         <p className="text-xs text-muted-foreground">End: {formatDate(term.endDate)}</p>
                       )}
+                      <TermDurationDialog
+                        termId={term.id}
+                        schoolId={schoolId}
+                        termName={term.name}
+                        startDate={term.startDate}
+                        endDate={term.endDate}
+                      />
                       {academicSession.status === "active" && (
                         <SetActiveTermButton
                           termId={term.id}

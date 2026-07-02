@@ -1,0 +1,1 @@
+ALTER TYPE "public"."term_status" ADD VALUE 'upcoming' BEFORE 'active';
