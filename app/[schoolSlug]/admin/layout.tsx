@@ -14,6 +14,7 @@ import {
   Calendar,
   TrendingUp,
   FileText,
+  Megaphone,
   Settings,
 } from "lucide-react";
 
@@ -48,6 +49,7 @@ export default async function AdminLayout({ children, params }: Props) {
     { label: "Assignments", href: `${base}/assignments`, icon: "Link2" },
     { label: "Sessions & Terms", href: `${base}/sessions`, icon: "Calendar" },
     { label: "Promotions", href: `${base}/promotions`, icon: "TrendingUp" },
+    { label: "Announcements", href: `${base}/announcements`, icon: "Megaphone" },
     { label: "Reports", href: `${base}/reports`, icon: "FileText" },
     { label: "Settings", href: `${base}/settings`, icon: "Settings" },
   ];
@@ -57,10 +59,11 @@ export default async function AdminLayout({ children, params }: Props) {
       <Sidebar
         items={navItems}
         schoolName={school.name}
+        schoolLogoUrl={school.logoUrl}
         userName={session.user.name || "Admin"}
         userRole="school_admin"
       />
-      <main className="flex-1 ml-64 min-h-screen bg-gray-50">
+      <main className="flex-1 ml-64 min-h-screen bg-gray-50 print:ml-0">
         {children}
       </main>
     </div>

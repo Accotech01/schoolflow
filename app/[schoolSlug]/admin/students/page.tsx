@@ -17,6 +17,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
+import { FileText } from "lucide-react";
+import Link from "next/link";
 import { StudentDialog } from "./student-dialog";
 import { DeleteStudentButton } from "./delete-student-button";
 import { EnrollStudentDialog } from "./enroll-student-dialog";
@@ -178,6 +180,12 @@ export default async function StudentsPage({ params }: Props) {
                                 currentClassId={activeEnrollment?.class.id}
                               />
                             )}
+                            <Link href={`/${schoolSlug}/admin/students/${student.id}/admission-letter`}>
+                              <Button variant="outline" size="sm" className="gap-1.5">
+                                <FileText className="h-3.5 w-3.5" />
+                                Admission Letter
+                              </Button>
+                            </Link>
                             <DeleteStudentButton studentId={student.id} studentName={student.name} />
                           </div>
                         </TableCell>

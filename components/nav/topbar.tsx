@@ -1,9 +1,10 @@
 "use client";
 
-import { Bell, Menu, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import { NotificationBell } from "@/components/nav/notification-bell";
 
 interface TopbarProps {
   title: string;
@@ -36,10 +37,7 @@ export function Topbar({ title, subtitle }: TopbarProps) {
             <Search className="h-4 w-4" />
           </Button>
         )}
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-4 w-4" />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-        </Button>
+        <NotificationBell />
       </div>
     </header>
   );

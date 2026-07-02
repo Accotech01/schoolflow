@@ -36,6 +36,11 @@ export const subscriptionStatusEnum = pgEnum("subscription_status", [
   "trial",
 ]);
 export const userStatusEnum = pgEnum("user_status", ["active", "inactive"]);
+export const announcementAudienceEnum = pgEnum("announcement_audience", [
+  "students",
+  "teachers",
+  "both",
+]);
 
 // ─── Superadmins ─────────────────────────────────────────────────────────────
 export const superadmins = pgTable("superadmins", {
@@ -88,6 +93,47 @@ export const schoolAdmins = pgTable("school_admins", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
+
+// ─── Announcements ────────────────────────────────────────────────────────────
+export const announcements = pgTable(
+  "announcements",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    // Set only for a teacher's class-specific announcement; null for
+    // school-wide announcements sent by a school admin.
+    classId: uuid("class_id").references(() => classes.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    message: text("message").notNull(),
+    audience: announcementAudienceEnum("audience").notNull().default("both"),
+    // "school_admin" or "teacher" — createdBy is a plain uuid (no FK) since it
+    // may point into either the school_admins or teachers table.
+    createdByRole: text("created_by_role").notNull().default("school_admin"),
+    createdBy: uuid("created_by"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [index("announcements_school_idx").on(table.schoolId)]
+);
+
+// Per-reader read receipts. readerId is a plain uuid (no FK) since it may
+// point into either the students or teachers table.
+export const announcementReads = pgTable(
+  "announcement_reads",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    announcementId: uuid("announcement_id")
+      .notNull()
+      .references(() => announcements.id, { onDelete: "cascade" }),
+    readerId: uuid("reader_id").notNull(),
+    readAt: timestamp("read_at").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("announcement_reads_unique_idx").on(table.announcementId, table.readerId),
+    index("announcement_reads_reader_idx").on(table.readerId),
+  ]
+);
 
 // ─── Academic Sessions ────────────────────────────────────────────────────────
 export const academicSessions = pgTable(
@@ -516,12 +562,32 @@ export const schoolsRelations = relations(schools, ({ many }) => ({
   teachers: many(teachers),
   students: many(students),
   promotions: many(promotions),
+  announcements: many(announcements),
 }));
 
 export const schoolAdminsRelations = relations(schoolAdmins, ({ one }) => ({
   school: one(schools, {
     fields: [schoolAdmins.schoolId],
     references: [schools.id],
+  }),
+}));
+
+export const announcementsRelations = relations(announcements, ({ one, many }) => ({
+  school: one(schools, {
+    fields: [announcements.schoolId],
+    references: [schools.id],
+  }),
+  class: one(classes, {
+    fields: [announcements.classId],
+    references: [classes.id],
+  }),
+  reads: many(announcementReads),
+}));
+
+export const announcementReadsRelations = relations(announcementReads, ({ one }) => ({
+  announcement: one(announcements, {
+    fields: [announcementReads.announcementId],
+    references: [announcements.id],
   }),
 }));
 

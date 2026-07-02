@@ -17,20 +17,30 @@ interface NavItem {
 interface SidebarProps {
   items: NavItem[];
   schoolName?: string;
+  schoolLogoUrl?: string | null;
   userName?: string;
   userRole?: string;
 }
 
-export function Sidebar({ items, schoolName, userName, userRole }: SidebarProps) {
+export function Sidebar({ items, schoolName, schoolLogoUrl, userName, userRole }: SidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-64 flex-shrink-0 flex flex-col bg-sidebar text-sidebar-foreground shadow-xl">
+    <aside className="no-print fixed left-0 top-0 z-40 h-screen w-64 flex-shrink-0 flex flex-col bg-sidebar text-sidebar-foreground shadow-xl">
       {/* Logo */}
       <div className="flex items-center gap-3 px-6 py-5 border-b border-sidebar-border">
-        <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-sidebar-primary">
-          <GraduationCap className="h-5 w-5 text-white" />
-        </div>
+        {schoolLogoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={schoolLogoUrl}
+            alt={schoolName || "School logo"}
+            className="w-9 h-9 rounded-lg object-cover flex-shrink-0 bg-white"
+          />
+        ) : (
+          <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-sidebar-primary flex-shrink-0">
+            <GraduationCap className="h-5 w-5 text-white" />
+          </div>
+        )}
         <div className="overflow-hidden">
           <p className="font-bold text-sm leading-tight truncate">
             {schoolName || "EduManage NG"}

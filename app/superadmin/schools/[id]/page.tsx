@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, Mail, Phone, MapPin } from "lucide-react";
+import { ArrowLeft, Mail, Phone, MapPin, Building2 } from "lucide-react";
 import { eq } from "drizzle-orm";
 import { schools } from "@/lib/db/schema";
 import { ManageAdminAccessDialog } from "@/app/superadmin/admins/manage-access-dialog";
@@ -56,11 +56,25 @@ export default async function SchoolDetailPage({ params }: PageProps) {
           <Card className="md:col-span-2">
             <CardHeader>
               <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle>{school.name}</CardTitle>
-                  <code className="text-xs text-muted-foreground bg-gray-100 px-2 py-0.5 rounded mt-1 inline-block">
-                    {school.slug}
-                  </code>
+                <div className="flex items-center gap-3">
+                  {school.logoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={school.logoUrl}
+                      alt={school.name}
+                      className="h-12 w-12 rounded-lg object-cover flex-shrink-0 border"
+                    />
+                  ) : (
+                    <div className="h-12 w-12 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                      <Building2 className="h-6 w-6 text-gray-400" />
+                    </div>
+                  )}
+                  <div>
+                    <CardTitle>{school.name}</CardTitle>
+                    <code className="text-xs text-muted-foreground bg-gray-100 px-2 py-0.5 rounded mt-1 inline-block">
+                      {school.slug}
+                    </code>
+                  </div>
                 </div>
                 <Badge
                   variant={school.subscriptionStatus === "active" ? "success" : "info"}

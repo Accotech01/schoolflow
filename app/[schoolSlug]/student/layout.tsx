@@ -9,6 +9,7 @@ import {
   BarChart3,
   BookOpen,
   Link2,
+  Megaphone,
   User,
 } from "lucide-react";
 
@@ -39,6 +40,7 @@ export default async function StudentLayout({ children, params }: Props) {
     { label: "My Results", href: `${base}/results`, icon: "BarChart3" },
     { label: "Lesson Notes", href: `${base}/resources`, icon: "BookOpen" },
     { label: "Resources", href: `${base}/resources?tab=links`, icon: "Link2" },
+    { label: "Announcements", href: `${base}/announcements`, icon: "Megaphone" },
     { label: "Profile", href: `${base}/profile`, icon: "User" },
   ];
 
@@ -47,6 +49,7 @@ export default async function StudentLayout({ children, params }: Props) {
       <Sidebar
         items={navItems}
         schoolName={school.name}
+        schoolLogoUrl={school.logoUrl}
         userName={session.user.name || "Student"}
         userRole="student"
       />

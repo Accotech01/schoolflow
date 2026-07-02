@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Building2 } from "lucide-react";
 import { CreateSchoolDialog } from "./create-school-dialog";
 import { DeleteSchoolButton } from "./delete-school-button";
 
@@ -65,7 +66,23 @@ export default async function SchoolsPage() {
                 ) : (
                   allSchools.map((school) => (
                     <TableRow key={school.id}>
-                      <TableCell className="font-medium">{school.name}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          {school.logoUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={school.logoUrl}
+                              alt={school.name}
+                              className="h-8 w-8 rounded-md object-cover flex-shrink-0 border"
+                            />
+                          ) : (
+                            <div className="h-8 w-8 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
+                              <Building2 className="h-4 w-4 text-gray-400" />
+                            </div>
+                          )}
+                          {school.name}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <code className="text-xs bg-gray-100 px-2 py-1 rounded">{school.slug}</code>
                       </TableCell>

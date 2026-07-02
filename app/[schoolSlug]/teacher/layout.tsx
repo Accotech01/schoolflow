@@ -9,6 +9,7 @@ import {
   ClipboardCheck,
   BookOpen,
   Link2,
+  Megaphone,
   User,
 } from "lucide-react";
 
@@ -39,6 +40,7 @@ export default async function TeacherLayout({ children, params }: Props) {
     { label: "Grade Students", href: `${base}/grades`, icon: "ClipboardCheck" },
     { label: "Lesson Notes", href: `${base}/lessons`, icon: "BookOpen" },
     { label: "Resources", href: `${base}/resources`, icon: "Link2" },
+    { label: "Announcements", href: `${base}/announcements`, icon: "Megaphone" },
     { label: "Profile", href: `${base}/profile`, icon: "User" },
   ];
 
@@ -47,6 +49,7 @@ export default async function TeacherLayout({ children, params }: Props) {
       <Sidebar
         items={navItems}
         schoolName={school.name}
+        schoolLogoUrl={school.logoUrl}
         userName={session.user.name || "Teacher"}
         userRole="teacher"
       />

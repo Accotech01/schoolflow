@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { GraduationCap, Eye, EyeOff, Loader2 } from "lucide-react";
+import { GraduationCap, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Link from "next/link";
-import { toast } from "sonner";
 
 type Role = "superadmin" | "school_admin" | "teacher" | "student";
 
@@ -24,6 +23,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [callbackUrl, setCallbackUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -46,8 +46,9 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     if (!form.email || !form.password || !form.role) {
-      toast.error("Please fill in all required fields");
+      setError("Please fill in all required fields.");
       return;
     }
 
@@ -63,12 +64,11 @@ export default function LoginPage() {
 
       if (result?.error) {
         if (result.code === "account_deactivated") {
-          toast.error(
-            "Your account has been deactivated. Please contact the super administrator to restore access.",
-            { duration: 8000 }
+          setError(
+            "Your account has been deactivated. Please contact the super administrator to restore access."
           );
         } else {
-          toast.error("Invalid credentials. Please check your details and try again.");
+          setError("Invalid email or password. Please check your details and try again.");
         }
         return;
       }
@@ -86,7 +86,7 @@ export default function LoginPage() {
 
       router.refresh();
     } catch {
-      toast.error("An error occurred. Please try again.");
+      setError("An error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -123,7 +123,10 @@ export default function LoginPage() {
                 <Label>Login as</Label>
                 <Select
                   value={form.role}
-                  onValueChange={(v) => setForm({ ...form, role: v as Role })}
+                  onValueChange={(v) => {
+                    setForm({ ...form, role: v as Role });
+                    setError(null);
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select role" />
@@ -144,9 +147,10 @@ export default function LoginPage() {
                   <Input
                     placeholder="e.g. bright-stars-school"
                     value={form.schoolSlug}
-                    onChange={(e) =>
-                      setForm({ ...form, schoolSlug: e.target.value.toLowerCase().trim() })
-                    }
+                    onChange={(e) => {
+                      setForm({ ...form, schoolSlug: e.target.value.toLowerCase().trim() });
+                      setError(null);
+                    }}
                   />
                   <p className="text-xs text-muted-foreground">
                     Ask your school administrator for your school&apos;s ID
@@ -161,7 +165,10 @@ export default function LoginPage() {
                   type="email"
                   placeholder="yourname@example.com"
                   value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  onChange={(e) => {
+                    setForm({ ...form, email: e.target.value });
+                    setError(null);
+                  }}
                   required
                 />
               </div>
@@ -174,7 +181,10 @@ export default function LoginPage() {
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
                     value={form.password}
-                    onChange={(e) => setForm({ ...form, password: e.target.value })}
+                    onChange={(e) => {
+                      setForm({ ...form, password: e.target.value });
+                      setError(null);
+                    }}
                     required
                   />
                   <button
@@ -186,6 +196,13 @@ export default function LoginPage() {
                   </button>
                 </div>
               </div>
+
+              {error && (
+                <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
 
               <Button
                 type="submit"

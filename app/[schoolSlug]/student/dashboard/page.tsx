@@ -9,6 +9,7 @@ import {
 import { eq, and } from "drizzle-orm";
 import { Topbar } from "@/components/nav/topbar";
 import { StatCard } from "@/components/dashboard/stat-card";
+import { CurrentTermBanner } from "@/components/dashboard/current-term-banner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -87,6 +88,13 @@ export default async function StudentDashboard({ params }: Props) {
         }
       />
       <div className="p-6 space-y-6">
+        <CurrentTermBanner
+          sessionName={activeSession?.name}
+          termName={activeTerm?.name}
+          startDate={activeTerm?.startDate}
+          endDate={activeTerm?.endDate}
+        />
+
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard
