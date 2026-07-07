@@ -9,6 +9,7 @@ import {
   academicSessions,
   terms,
   schoolAdmins,
+  schools,
 } from "@/lib/db/schema";
 import { eq, and, count } from "drizzle-orm";
 import { Topbar } from "@/components/nav/topbar";
@@ -39,13 +40,20 @@ export default async function AdminDashboard({ params }: Props) {
     where: eq(schoolAdmins.id, session!.user.id),
   });
 
-  const [[studentCount], [teacherCount], [classCount], [subjectCount]] =
+  const school = await db.query.schools.findFirst({
+    where: eq(schools.id, schoolId),
+  });
+
+  const [[studentCount], [teacherCount], [classCount], [subjectCount], [activeStudentCount]] =
     await Promise.all([
       db.select({ count: count() }).from(students).where(eq(students.schoolId, schoolId)),
       db.select({ count: count() }).from(teachers).where(eq(teachers.schoolId, schoolId)),
       db.select({ count: count() }).from(classes).where(eq(classes.schoolId, schoolId)),
       db.select({ count: count() }).from(subjects).where(eq(subjects.schoolId, schoolId)),
+      db.select({ count: count() }).from(students).where(and(eq(students.schoolId, schoolId), eq(students.status, "active"))),
     ]);
+
+  const amountDue = school ? activeStudentCount.count * parseFloat(school.amountPerStudent) : undefined;
 
   const activeSession = await db.query.academicSessions.findFirst({
     where: and(
@@ -81,6 +89,7 @@ export default async function AdminDashboard({ params }: Props) {
           <PaymentStatusBanner
             status={currentAdmin.status}
             nextPaymentDueDate={currentAdmin.nextPaymentDueDate}
+            amountDue={amountDue}
           />
         )}
 

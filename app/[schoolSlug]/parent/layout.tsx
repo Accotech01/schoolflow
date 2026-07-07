@@ -4,26 +4,18 @@ import { Sidebar } from "@/components/nav/sidebar";
 import { db } from "@/lib/db";
 import { schools } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import {
-  LayoutDashboard,
-  ClipboardCheck,
-  CalendarCheck,
-  BookOpen,
-  Link2,
-  Megaphone,
-  User,
-} from "lucide-react";
+import { LayoutDashboard, MessageSquare } from "lucide-react";
 
 interface Props {
   children: React.ReactNode;
   params: Promise<{ schoolSlug: string }>;
 }
 
-export default async function TeacherLayout({ children, params }: Props) {
+export default async function ParentLayout({ children, params }: Props) {
   const { schoolSlug } = await params;
   const session = await auth();
 
-  if (!session || session.user.role !== "teacher") {
+  if (!session || session.user.role !== "parent") {
     redirect("/login");
   }
 
@@ -35,15 +27,10 @@ export default async function TeacherLayout({ children, params }: Props) {
     redirect("/login");
   }
 
-  const base = `/${schoolSlug}/teacher`;
+  const base = `/${schoolSlug}/parent`;
   const navItems = [
     { label: "Dashboard", href: `${base}/dashboard`, icon: "LayoutDashboard" },
-    { label: "Grade Students", href: `${base}/grades`, icon: "ClipboardCheck" },
-    { label: "Attendance", href: `${base}/attendance`, icon: "CalendarCheck" },
-    { label: "Lesson Notes", href: `${base}/lessons`, icon: "BookOpen" },
-    { label: "Resources", href: `${base}/resources`, icon: "Link2" },
-    { label: "Announcements", href: `${base}/announcements`, icon: "Megaphone" },
-    { label: "Profile", href: `${base}/profile`, icon: "User" },
+    { label: "Complaints & Suggestions", href: `${base}/complaints`, icon: "MessageSquare" },
   ];
 
   return (
@@ -52,8 +39,8 @@ export default async function TeacherLayout({ children, params }: Props) {
         items={navItems}
         schoolName={school.name}
         schoolLogoUrl={school.logoUrl}
-        userName={session.user.name || "Teacher"}
-        userRole="teacher"
+        userName={session.user.name || "Parent"}
+        userRole="parent"
       />
       <main className="flex-1 ml-64 min-h-screen bg-gray-50">
         {children}

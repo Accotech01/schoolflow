@@ -7,6 +7,7 @@ import {
   academicSessions,
 } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
+import { getMyAttendanceSummary } from "@/actions/attendance";
 import { Topbar } from "@/components/nav/topbar";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { CurrentTermBanner } from "@/components/dashboard/current-term-banner";
@@ -15,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import {
-  BookOpen, BarChart3, Award, TrendingUp, Lightbulb, Star,
+  BookOpen, BarChart3, Award, TrendingUp, Lightbulb, Star, CalendarCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -77,6 +78,8 @@ export default async function StudentDashboard({ params }: Props) {
 
   const subjectsWithGrades = termGrades.filter((g) => g.total !== null).length;
 
+  const attendance = await getMyAttendanceSummary();
+
   return (
     <div>
       <Topbar
@@ -96,7 +99,7 @@ export default async function StudentDashboard({ params }: Props) {
         />
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <StatCard
             title="Current Class"
             value={enrollment?.class?.name || "—"}
@@ -121,6 +124,13 @@ export default async function StudentDashboard({ params }: Props) {
             description={average > 0 ? avgRemark : undefined}
             icon={Award}
             color="orange"
+          />
+          <StatCard
+            title="Attendance"
+            value={attendance?.score !== null && attendance?.score !== undefined ? `${attendance.score}/${attendance.maxScore}` : "N/A"}
+            description={attendance && attendance.totalMarked > 0 ? `${attendance.percentage}% attended` : undefined}
+            icon={CalendarCheck}
+            color="blue"
           />
         </div>
 

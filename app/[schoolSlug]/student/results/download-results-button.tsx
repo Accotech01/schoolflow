@@ -11,12 +11,17 @@ interface Props {
   studentName: string;
   className: string;
   sessionName: string;
+  isComplete: boolean;
 }
 
-export function DownloadResultsButton({ studentName, className, sessionName }: Props) {
+export function DownloadResultsButton({ studentName, className, sessionName, isComplete }: Props) {
   const [loading, setLoading] = useState(false);
 
   const handleDownload = async () => {
+    if (!isComplete) {
+      toast.error("Results aren't downloadable yet — some subjects haven't been graded.");
+      return;
+    }
     setLoading(true);
     try {
       const element = document.getElementById("results-content");
@@ -77,8 +82,9 @@ export function DownloadResultsButton({ studentName, className, sessionName }: P
   return (
     <Button
       onClick={handleDownload}
-      disabled={loading}
-      className="gap-2 bg-blue-600 hover:bg-blue-700"
+      disabled={loading || !isComplete}
+      title={isComplete ? undefined : "Available once all subjects are graded for this term"}
+      className="gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
     >
       {loading ? (
         <>

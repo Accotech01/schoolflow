@@ -15,6 +15,8 @@ import {
   TrendingUp,
   FileText,
   Megaphone,
+  Mail,
+  MessageSquare,
   Settings,
 } from "lucide-react";
 
@@ -50,6 +52,8 @@ export default async function AdminLayout({ children, params }: Props) {
     { label: "Sessions & Terms", href: `${base}/sessions`, icon: "Calendar" },
     { label: "Promotions", href: `${base}/promotions`, icon: "TrendingUp" },
     { label: "Announcements", href: `${base}/announcements`, icon: "Megaphone" },
+    { label: "Messages", href: `${base}/messages`, icon: "Mail" },
+    { label: "Complaints", href: `${base}/complaints`, icon: "MessageSquare" },
     { label: "Reports", href: `${base}/reports`, icon: "FileText" },
     { label: "Settings", href: `${base}/settings`, icon: "Settings" },
   ];

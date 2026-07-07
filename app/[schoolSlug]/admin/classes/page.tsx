@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { classes, studentEnrollments, academicSessions } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { classes, studentEnrollments, teachers } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { Topbar } from "@/components/nav/topbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -26,7 +26,13 @@ export default async function ClassesPage({ params }: Props) {
       studentEnrollments: {
         where: eq(studentEnrollments.isActive, true),
       },
+      classTeacher: true,
     },
+  });
+
+  const allTeachers = await db.query.teachers.findMany({
+    where: eq(teachers.schoolId, schoolId),
+    orderBy: (t, { asc }) => [asc(t.name)],
   });
 
   return (
@@ -36,7 +42,7 @@ export default async function ClassesPage({ params }: Props) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">All Classes ({allClasses.length})</CardTitle>
-            <ClassDialog schoolId={schoolId} />
+            <ClassDialog schoolId={schoolId} teachers={allTeachers} />
           </CardHeader>
           <CardContent>
             <Table>
@@ -45,6 +51,7 @@ export default async function ClassesPage({ params }: Props) {
                   <TableHead>Class Name</TableHead>
                   <TableHead>Level</TableHead>
                   <TableHead>Description</TableHead>
+                  <TableHead>Class Teacher</TableHead>
                   <TableHead>Students (Active)</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -52,7 +59,7 @@ export default async function ClassesPage({ params }: Props) {
               <TableBody>
                 {allClasses.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
                       No classes created yet.
                     </TableCell>
                   </TableRow>
@@ -62,6 +69,11 @@ export default async function ClassesPage({ params }: Props) {
                       <TableCell className="font-medium">{cls.name}</TableCell>
                       <TableCell>{cls.level}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{cls.description || "—"}</TableCell>
+                      <TableCell className="text-sm">
+                        {cls.classTeacher?.name || (
+                          <span className="text-muted-foreground">Not assigned</span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <span className="font-semibold text-blue-600">
                           {cls.studentEnrollments.length}
@@ -69,7 +81,7 @@ export default async function ClassesPage({ params }: Props) {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
-                          <ClassDialog schoolId={schoolId} cls={cls} mode="edit" />
+                          <ClassDialog schoolId={schoolId} cls={cls} mode="edit" teachers={allTeachers} />
                           <DeleteClassButton classId={cls.id} className={cls.name} />
                         </div>
                       </TableCell>

@@ -4,11 +4,16 @@ import { formatDate } from "@/lib/utils";
 interface Props {
   status: string;
   nextPaymentDueDate: Date | string | null;
+  amountDue?: number;
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export function PaymentStatusBanner({ status, nextPaymentDueDate }: Props) {
+function formatAmount(amount: number) {
+  return `₦${amount.toLocaleString()}`;
+}
+
+export function PaymentStatusBanner({ status, nextPaymentDueDate, amountDue }: Props) {
   if (status !== "active") {
     return (
       <div className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-800">
@@ -43,8 +48,9 @@ export function PaymentStatusBanner({ status, nextPaymentDueDate }: Props) {
         <p className="text-sm">
           <strong>Payment Overdue:</strong> Your payment was due on{" "}
           {formatDate(nextPaymentDueDate)} ({Math.abs(daysRemaining)} day
-          {Math.abs(daysRemaining) === 1 ? "" : "s"} ago). Please make payment
-          immediately to avoid your account being deactivated.
+          {Math.abs(daysRemaining) === 1 ? "" : "s"} ago){amountDue !== undefined && (
+            <> — <strong>{formatAmount(amountDue)}</strong> due</>
+          )}. Please make payment immediately to avoid your account being deactivated.
         </p>
       </div>
     );
@@ -58,8 +64,9 @@ export function PaymentStatusBanner({ status, nextPaymentDueDate }: Props) {
           <strong>Payment Due Soon:</strong> {daysRemaining === 0
             ? "Your payment is due today"
             : `${daysRemaining} day${daysRemaining === 1 ? "" : "s"} left until your payment is due`}{" "}
-          ({formatDate(nextPaymentDueDate)}). Please renew to avoid service
-          interruption.
+          ({formatDate(nextPaymentDueDate)}){amountDue !== undefined && (
+            <> — <strong>{formatAmount(amountDue)}</strong> due</>
+          )}. Please renew to avoid service interruption.
         </p>
       </div>
     );
@@ -70,7 +77,10 @@ export function PaymentStatusBanner({ status, nextPaymentDueDate }: Props) {
       <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
       <p className="text-sm">
         <strong>Account Active</strong> — next payment due{" "}
-        {formatDate(nextPaymentDueDate)}.
+        {formatDate(nextPaymentDueDate)}
+        {amountDue !== undefined && (
+          <> (<strong>{formatAmount(amountDue)}</strong>)</>
+        )}.
       </p>
     </div>
   );

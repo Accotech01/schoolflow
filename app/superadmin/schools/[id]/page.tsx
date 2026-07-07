@@ -14,10 +14,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, Mail, Phone, MapPin, Building2 } from "lucide-react";
+import { ArrowLeft, Mail, Phone, MapPin, Building2, Banknote } from "lucide-react";
 import { eq } from "drizzle-orm";
 import { schools } from "@/lib/db/schema";
 import { ManageAdminAccessDialog } from "@/app/superadmin/admins/manage-access-dialog";
+import { BillingRateDialog } from "@/app/superadmin/schools/billing-rate-dialog";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -40,6 +41,9 @@ export default async function SchoolDetailPage({ params }: PageProps) {
   });
 
   if (!school) notFound();
+
+  const activeStudentCount = school.students.filter((s) => s.status === "active").length;
+  const amountDue = activeStudentCount * parseFloat(school.amountPerStudent);
 
   return (
     <div>
@@ -128,6 +132,33 @@ export default async function SchoolDetailPage({ params }: PageProps) {
             </CardContent>
           </Card>
         </div>
+
+        {/* Billing */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Banknote className="h-4 w-4 text-green-600" />
+              Billing
+            </CardTitle>
+            <BillingRateDialog schoolId={school.id} currentRate={parseFloat(school.amountPerStudent)} />
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Amount Per Student</p>
+                <p className="text-xl font-bold">₦{parseFloat(school.amountPerStudent).toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Active Students</p>
+                <p className="text-xl font-bold">{activeStudentCount}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Amount Due</p>
+                <p className="text-xl font-bold text-green-700">₦{amountDue.toLocaleString()}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Admins Table */}
         <Card>

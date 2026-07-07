@@ -11,6 +11,8 @@ import {
   studentSubjectAssignments,
   academicSessions,
   terms,
+  parents,
+  parentStudents,
 } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -124,9 +126,15 @@ const classSchema = z.object({
   name: z.string().min(1),
   level: z.number().int().min(1).max(12),
   description: z.string().optional(),
+  classTeacherId: z.string().uuid().nullable().optional(),
 });
 
 export async function createClass(data: z.infer<typeof classSchema>) {
+  const session = await auth();
+  if (session?.user?.role !== "school_admin" || session.user.schoolId !== data.schoolId) {
+    return { success: false, error: "Unauthorized" };
+  }
+
   const parsed = classSchema.safeParse(data);
   if (!parsed.success) return { success: false, error: "Invalid data" };
 
@@ -136,12 +144,32 @@ export async function createClass(data: z.infer<typeof classSchema>) {
 }
 
 export async function updateClass(classId: string, data: Partial<z.infer<typeof classSchema>>) {
+  const session = await auth();
+  if (session?.user?.role !== "school_admin") {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  const existing = await db.query.classes.findFirst({ where: eq(classes.id, classId) });
+  if (!existing || existing.schoolId !== session.user.schoolId) {
+    return { success: false, error: "Class not found" };
+  }
+
   await db.update(classes).set({ ...data, updatedAt: new Date() }).where(eq(classes.id, classId));
   revalidatePath(`/[schoolSlug]/admin/classes`);
   return { success: true };
 }
 
 export async function deleteClass(classId: string) {
+  const session = await auth();
+  if (session?.user?.role !== "school_admin") {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  const existing = await db.query.classes.findFirst({ where: eq(classes.id, classId) });
+  if (!existing || existing.schoolId !== session.user.schoolId) {
+    return { success: false, error: "Class not found" };
+  }
+
   await db.delete(classes).where(eq(classes.id, classId));
   revalidatePath(`/[schoolSlug]/admin/classes`);
   return { success: true };
@@ -239,7 +267,44 @@ const studentSchema = z.object({
   bloodGroup: z.string().optional(),
   stateOfOrigin: z.string().optional(),
   religion: z.string().optional(),
+  parentEmail: z.string().email().optional().or(z.literal("")),
+  parentPassword: z.string().min(6).optional().or(z.literal("")),
 });
+
+// Finds-or-creates a parent login by email (scoped to the school) and links
+// them to the given student — reused whenever a school admin optionally
+// provides parent login details, at creation or later via edit.
+async function linkParentToStudent(
+  schoolId: string,
+  studentId: string,
+  parentEmail: string,
+  parentPassword: string,
+  parentName: string
+) {
+  let parent = await db.query.parents.findFirst({
+    where: and(eq(parents.email, parentEmail), eq(parents.schoolId, schoolId)),
+  });
+
+  if (!parent) {
+    const passwordHash = await bcrypt.hash(parentPassword, 12);
+    [parent] = await db
+      .insert(parents)
+      .values({
+        schoolId,
+        name: parentName || "Parent/Guardian",
+        email: parentEmail,
+        passwordHash,
+      })
+      .returning();
+  }
+
+  await db
+    .insert(parentStudents)
+    .values({ parentId: parent.id, studentId })
+    .onConflictDoNothing({ target: [parentStudents.parentId, parentStudents.studentId] });
+
+  return parent;
+}
 
 export async function createStudent(data: z.infer<typeof studentSchema>) {
   const parsed = studentSchema.safeParse(data);
@@ -251,7 +316,7 @@ export async function createStudent(data: z.infer<typeof studentSchema>) {
   if (existing) return { success: false, error: "Email already in use" };
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
-  const { password, ...rest } = parsed.data;
+  const { password, parentEmail, parentPassword, ...rest } = parsed.data;
 
   const [student] = await db.insert(students).values({
     ...rest,
@@ -259,12 +324,17 @@ export async function createStudent(data: z.infer<typeof studentSchema>) {
     dateOfBirth: rest.dateOfBirth ? new Date(rest.dateOfBirth) : null,
   }).returning();
 
+  if (parentEmail && parentPassword) {
+    await linkParentToStudent(parsed.data.schoolId, student.id, parentEmail, parentPassword, rest.guardianName || "");
+  }
+
   revalidatePath(`/[schoolSlug]/admin/students`);
   return { success: true, student };
 }
 
 export async function updateStudent(studentId: string, data: Partial<Omit<z.infer<typeof studentSchema>, "password">> & { password?: string }) {
-  const updateData: Record<string, unknown> = { ...data, updatedAt: new Date() };
+  const { parentEmail, parentPassword, ...rest } = data;
+  const updateData: Record<string, unknown> = { ...rest, updatedAt: new Date() };
   if (data.password) {
     updateData.passwordHash = await bcrypt.hash(data.password, 12);
     delete updateData.password;
@@ -273,6 +343,14 @@ export async function updateStudent(studentId: string, data: Partial<Omit<z.infe
     updateData.dateOfBirth = new Date(data.dateOfBirth);
   }
   await db.update(students).set(updateData).where(eq(students.id, studentId));
+
+  if (parentEmail && parentPassword) {
+    const student = await db.query.students.findFirst({ where: eq(students.id, studentId) });
+    if (student) {
+      await linkParentToStudent(student.schoolId, studentId, parentEmail, parentPassword, data.guardianName || "");
+    }
+  }
+
   revalidatePath(`/[schoolSlug]/admin/students`);
   return { success: true };
 }

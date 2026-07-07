@@ -1,4 +1,4 @@
-import { getAnnouncementsForPage } from "@/actions/announcements";
+import { getAnnouncementsForPage, markAllAnnouncementsRead } from "@/actions/announcements";
 import { db } from "@/lib/db";
 import { classes } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { Megaphone } from "lucide-react";
-import { MarkAllAnnouncementsRead } from "@/components/dashboard/mark-all-announcements-read";
+import { MarkAllRead } from "@/components/dashboard/mark-all-read";
 
 export default async function StudentAnnouncementsPage() {
   const items = await getAnnouncementsForPage();
@@ -20,7 +20,7 @@ export default async function StudentAnnouncementsPage() {
 
   return (
     <div>
-      <MarkAllAnnouncementsRead />
+      <MarkAllRead action={markAllAnnouncementsRead} />
       <Topbar title="Announcements" subtitle="Updates from your school and teachers" />
       <div className="p-6 space-y-4">
         {items.length === 0 ? (

@@ -28,12 +28,13 @@ export const authConfig: NextAuthConfig = {
       }
 
       // School-specific routes
-      const schoolSlugMatch = pathname.match(/^\/([^/]+)\/(admin|teacher|student)/);
+      const schoolSlugMatch = pathname.match(/^\/([^/]+)\/(admin|teacher|student|parent)/);
       if (schoolSlugMatch) {
         const section = schoolSlugMatch[2];
         if (section === "admin") return role === "school_admin";
         if (section === "teacher") return role === "teacher";
         if (section === "student") return role === "student";
+        if (section === "parent") return role === "parent";
       }
 
       return false;

@@ -49,10 +49,16 @@ export function StudentDialog({ schoolId, student, mode = "create" }: Props) {
     guardianPhone: student?.guardianPhone || "",
     stateOfOrigin: student?.stateOfOrigin || "",
     religion: student?.religion || "",
+    parentEmail: "",
+    parentPassword: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if ((form.parentEmail && !form.parentPassword) || (!form.parentEmail && form.parentPassword)) {
+      toast.error("Provide both a parent email and password, or leave both blank");
+      return;
+    }
     setLoading(true);
     try {
       if (mode === "create") {
@@ -69,6 +75,8 @@ export function StudentDialog({ schoolId, student, mode = "create" }: Props) {
           guardianPhone: form.guardianPhone || undefined,
           stateOfOrigin: form.stateOfOrigin || undefined,
           religion: form.religion || undefined,
+          parentEmail: form.parentEmail || undefined,
+          parentPassword: form.parentPassword || undefined,
         });
         if (result.success) {
           toast.success("Student created successfully!");
@@ -88,6 +96,8 @@ export function StudentDialog({ schoolId, student, mode = "create" }: Props) {
           guardianPhone: form.guardianPhone || undefined,
           stateOfOrigin: form.stateOfOrigin || undefined,
           religion: form.religion || undefined,
+          parentEmail: form.parentEmail || undefined,
+          parentPassword: form.parentPassword || undefined,
         });
         if (result.success) {
           toast.success("Student updated!");
@@ -182,6 +192,34 @@ export function StudentDialog({ schoolId, student, mode = "create" }: Props) {
                   <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="col-span-2 space-y-2 pt-2">
+              <h3 className="font-semibold text-sm text-gray-700 border-b pb-1">
+                Parent Account (Optional)
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Provide both fields to create — or link, if this email already has a parent
+                account — a login the parent can use to view this child&apos;s details.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Parent Login Email</Label>
+              <Input
+                type="email"
+                value={form.parentEmail}
+                onChange={(e) => setForm({ ...form, parentEmail: e.target.value })}
+                placeholder="parent@example.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Parent Password</Label>
+              <Input
+                type="password"
+                value={form.parentPassword}
+                onChange={(e) => setForm({ ...form, parentPassword: e.target.value })}
+                placeholder="Min. 6 characters"
+                minLength={6}
+              />
             </div>
           </div>
           <DialogFooter>

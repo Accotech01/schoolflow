@@ -51,6 +51,26 @@ export async function updateSchoolAdminAccess(
 }
 
 // ─── Schools ──────────────────────────────────────────────────────────────────
+export async function updateSchoolBillingRate(schoolId: string, amountPerStudent: number) {
+  const session = await auth();
+  if (session?.user?.role !== "superadmin") {
+    return { success: false, error: "Unauthorized: Only superadmins can set billing rates" };
+  }
+
+  if (!(amountPerStudent >= 0)) {
+    return { success: false, error: "Amount per student must be zero or more" };
+  }
+
+  await db
+    .update(schools)
+    .set({ amountPerStudent: String(amountPerStudent), updatedAt: new Date() })
+    .where(eq(schools.id, schoolId));
+
+  revalidatePath("/superadmin/schools");
+  revalidatePath(`/superadmin/schools/${schoolId}`);
+  return { success: true };
+}
+
 export async function deleteSchool(schoolId: string) {
   try {
     const session = await auth();

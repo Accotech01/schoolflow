@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { getAnnouncementsForPage } from "@/actions/announcements";
+import { getAnnouncementsForPage, markAllAnnouncementsRead } from "@/actions/announcements";
 import { db } from "@/lib/db";
 import { announcements } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -10,7 +10,7 @@ import { formatDate } from "@/lib/utils";
 import { Megaphone } from "lucide-react";
 import { CreateClassAnnouncementDialog } from "./create-class-announcement-dialog";
 import { DeleteAnnouncementButton } from "@/components/announcements/delete-announcement-button";
-import { MarkAllAnnouncementsRead } from "@/components/dashboard/mark-all-announcements-read";
+import { MarkAllRead } from "@/components/dashboard/mark-all-read";
 
 export default async function TeacherAnnouncementsPage() {
   const session = await auth();
@@ -26,7 +26,7 @@ export default async function TeacherAnnouncementsPage() {
 
   return (
     <div>
-      <MarkAllAnnouncementsRead />
+      <MarkAllRead action={markAllAnnouncementsRead} />
       <Topbar title="Announcements" subtitle="School updates and your class announcements" />
       <div className="p-6 space-y-8">
         {/* Received from school admin */}

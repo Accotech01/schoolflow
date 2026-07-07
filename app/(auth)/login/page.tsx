@@ -17,7 +17,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Link from "next/link";
 
-type Role = "superadmin" | "school_admin" | "teacher" | "student";
+type Role = "superadmin" | "school_admin" | "teacher" | "student" | "parent";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -42,6 +42,7 @@ export default function LoginPage() {
     school_admin: "School Administrator",
     teacher: "Teacher",
     student: "Student",
+    parent: "Parent",
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -80,8 +81,10 @@ export default function LoginPage() {
         router.push(`/${form.schoolSlug}/admin/dashboard`);
       } else if (form.role === "teacher") {
         router.push(`/${form.schoolSlug}/teacher/dashboard`);
-      } else {
+      } else if (form.role === "student") {
         router.push(`/${form.schoolSlug}/student/dashboard`);
+      } else {
+        router.push(`/${form.schoolSlug}/parent/dashboard`);
       }
 
       router.refresh();
@@ -133,6 +136,7 @@ export default function LoginPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="student">Student</SelectItem>
+                    <SelectItem value="parent">Parent</SelectItem>
                     <SelectItem value="teacher">Teacher</SelectItem>
                     <SelectItem value="school_admin">School Administrator</SelectItem>
                     <SelectItem value="superadmin">Super Administrator</SelectItem>

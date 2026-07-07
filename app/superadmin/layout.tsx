@@ -6,12 +6,14 @@ import {
   School,
   Settings,
   Users,
+  MessageSquare,
 } from "lucide-react";
 
 const navItems = [
   { label: "Dashboard", href: "/superadmin/dashboard", icon: "LayoutDashboard" },
   { label: "Schools", href: "/superadmin/schools", icon: "School" },
   { label: "Administrators", href: "/superadmin/admins", icon: "Users" },
+  { label: "Messages", href: "/superadmin/messages", icon: "MessageSquare" },
   { label: "Settings", href: "/superadmin/settings", icon: "Settings" },
 ];
 

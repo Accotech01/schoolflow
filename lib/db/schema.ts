@@ -41,6 +41,15 @@ export const announcementAudienceEnum = pgEnum("announcement_audience", [
   "teachers",
   "both",
 ]);
+export const attendanceStatusEnum = pgEnum("attendance_status", [
+  "present",
+  "absent",
+  "late",
+]);
+export const complaintStatusEnum = pgEnum("complaint_status", [
+  "open",
+  "resolved",
+]);
 
 // ─── Superadmins ─────────────────────────────────────────────────────────────
 export const superadmins = pgTable("superadmins", {
@@ -71,6 +80,11 @@ export const schools = pgTable(
       .notNull()
       .default("trial"),
     maxStudents: integer("max_students").notNull().default(500),
+    // Per-student billing rate the superadmin sets for this school; the
+    // school's amount due is this multiplied by its active student count.
+    amountPerStudent: decimal("amount_per_student", { precision: 10, scale: 2 })
+      .notNull()
+      .default("0"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
@@ -183,6 +197,15 @@ export const classes = pgTable(
     name: text("name").notNull(), // e.g. "JSS 1", "JSS 2", "SS 1"
     level: integer("level").notNull(), // 1-6 for JS 1-3 and SS 1-3
     description: text("description"),
+    // Central/homeroom teacher for this class, assigned by the school admin.
+    classTeacherId: uuid("class_teacher_id").references(() => teachers.id, {
+      onDelete: "set null",
+    }),
+    // Max score the class teacher finalizes end-of-term attendance against
+    // (e.g. 10 -> a student present 90% of marked days scores 9).
+    attendanceMaxScore: decimal("attendance_max_score", { precision: 5, scale: 2 })
+      .notNull()
+      .default("10"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
@@ -257,6 +280,46 @@ export const students = pgTable(
   (table) => [
     index("students_school_idx").on(table.schoolId),
     index("students_admission_idx").on(table.admissionNumber),
+  ]
+);
+
+// ─── Parents ──────────────────────────────────────────────────────────────────
+export const parents = pgTable(
+  "parents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    email: text("email").notNull().unique(),
+    passwordHash: text("password_hash").notNull(),
+    phone: text("phone"),
+    status: userStatusEnum("status").notNull().default("active"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [index("parents_school_idx").on(table.schoolId)]
+);
+
+// Links a parent account to each of their children — a parent with multiple
+// kids at the same school reuses one login linked to every child.
+export const parentStudents = pgTable(
+  "parent_students",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    parentId: uuid("parent_id")
+      .notNull()
+      .references(() => parents.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("parent_students_unique_idx").on(table.parentId, table.studentId),
+    index("parent_students_parent_idx").on(table.parentId),
+    index("parent_students_student_idx").on(table.studentId),
   ]
 );
 
@@ -553,6 +616,95 @@ export const promotions = pgTable(
   ]
 );
 
+// ─── Attendance ───────────────────────────────────────────────────────────────
+export const attendanceRecords = pgTable(
+  "attendance_records",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    classId: uuid("class_id")
+      .notNull()
+      .references(() => classes.id, { onDelete: "cascade" }),
+    termId: uuid("term_id")
+      .notNull()
+      .references(() => terms.id, { onDelete: "cascade" }),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    date: timestamp("date").notNull(),
+    status: attendanceStatusEnum("status").notNull().default("present"),
+    markedBy: uuid("marked_by"), // teachers.id, no FK (kept plain for consistency)
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("attendance_unique_idx").on(table.studentId, table.termId, table.date),
+    index("attendance_class_idx").on(table.classId),
+    index("attendance_term_idx").on(table.termId),
+  ]
+);
+
+// ─── Platform Messages (superadmin → school admins) ───────────────────────────
+export const platformMessages = pgTable(
+  "platform_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // Null = broadcast announcement to every school admin; set = a direct
+    // message to one specific school admin.
+    toSchoolAdminId: uuid("to_school_admin_id").references(() => schoolAdmins.id, {
+      onDelete: "cascade",
+    }),
+    title: text("title").notNull(),
+    message: text("message").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [index("platform_messages_recipient_idx").on(table.toSchoolAdminId)]
+);
+
+export const platformMessageReads = pgTable(
+  "platform_message_reads",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    messageId: uuid("message_id")
+      .notNull()
+      .references(() => platformMessages.id, { onDelete: "cascade" }),
+    readerId: uuid("reader_id").notNull(),
+    readAt: timestamp("read_at").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("platform_message_reads_unique_idx").on(table.messageId, table.readerId),
+    index("platform_message_reads_reader_idx").on(table.readerId),
+  ]
+);
+
+// ─── Complaints & Suggestions (parent → school admin) ─────────────────────────
+export const complaints = pgTable(
+  "complaints",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    parentId: uuid("parent_id")
+      .notNull()
+      .references(() => parents.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id").references(() => students.id, { onDelete: "set null" }),
+    subject: text("subject").notNull(),
+    message: text("message").notNull(),
+    status: complaintStatusEnum("status").notNull().default("open"),
+    response: text("response"),
+    respondedAt: timestamp("responded_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("complaints_school_idx").on(table.schoolId),
+    index("complaints_parent_idx").on(table.parentId),
+  ]
+);
+
 // ─── Relations ────────────────────────────────────────────────────────────────
 export const schoolsRelations = relations(schools, ({ many }) => ({
   admins: many(schoolAdmins),
@@ -561,14 +713,67 @@ export const schoolsRelations = relations(schools, ({ many }) => ({
   subjects: many(subjects),
   teachers: many(teachers),
   students: many(students),
+  parents: many(parents),
   promotions: many(promotions),
   announcements: many(announcements),
+  complaints: many(complaints),
 }));
 
-export const schoolAdminsRelations = relations(schoolAdmins, ({ one }) => ({
+export const schoolAdminsRelations = relations(schoolAdmins, ({ one, many }) => ({
   school: one(schools, {
     fields: [schoolAdmins.schoolId],
     references: [schools.id],
+  }),
+  receivedMessages: many(platformMessages),
+}));
+
+export const parentsRelations = relations(parents, ({ one, many }) => ({
+  school: one(schools, {
+    fields: [parents.schoolId],
+    references: [schools.id],
+  }),
+  childLinks: many(parentStudents),
+  complaints: many(complaints),
+}));
+
+export const parentStudentsRelations = relations(parentStudents, ({ one }) => ({
+  parent: one(parents, {
+    fields: [parentStudents.parentId],
+    references: [parents.id],
+  }),
+  student: one(students, {
+    fields: [parentStudents.studentId],
+    references: [students.id],
+  }),
+}));
+
+export const platformMessagesRelations = relations(platformMessages, ({ one, many }) => ({
+  toSchoolAdmin: one(schoolAdmins, {
+    fields: [platformMessages.toSchoolAdminId],
+    references: [schoolAdmins.id],
+  }),
+  reads: many(platformMessageReads),
+}));
+
+export const platformMessageReadsRelations = relations(platformMessageReads, ({ one }) => ({
+  message: one(platformMessages, {
+    fields: [platformMessageReads.messageId],
+    references: [platformMessages.id],
+  }),
+}));
+
+export const complaintsRelations = relations(complaints, ({ one }) => ({
+  school: one(schools, {
+    fields: [complaints.schoolId],
+    references: [schools.id],
+  }),
+  parent: one(parents, {
+    fields: [complaints.parentId],
+    references: [parents.id],
+  }),
+  student: one(students, {
+    fields: [complaints.studentId],
+    references: [students.id],
   }),
 }));
 
@@ -625,10 +830,30 @@ export const classesRelations = relations(classes, ({ one, many }) => ({
     fields: [classes.schoolId],
     references: [schools.id],
   }),
+  classTeacher: one(teachers, {
+    fields: [classes.classTeacherId],
+    references: [teachers.id],
+  }),
   teacherAssignments: many(teacherAssignments),
   studentEnrollments: many(studentEnrollments),
   studentSubjectAssignments: many(studentSubjectAssignments),
   grades: many(grades),
+  attendanceRecords: many(attendanceRecords),
+}));
+
+export const attendanceRecordsRelations = relations(attendanceRecords, ({ one }) => ({
+  student: one(students, {
+    fields: [attendanceRecords.studentId],
+    references: [students.id],
+  }),
+  class: one(classes, {
+    fields: [attendanceRecords.classId],
+    references: [classes.id],
+  }),
+  term: one(terms, {
+    fields: [attendanceRecords.termId],
+    references: [terms.id],
+  }),
 }));
 
 export const subjectsRelations = relations(subjects, ({ one, many }) => ({
@@ -661,6 +886,8 @@ export const studentsRelations = relations(students, ({ one, many }) => ({
   subjectAssignments: many(studentSubjectAssignments),
   grades: many(grades),
   promotions: many(promotions),
+  parentLinks: many(parentStudents),
+  complaints: many(complaints),
 }));
 
 export const teacherAssignmentsRelations = relations(

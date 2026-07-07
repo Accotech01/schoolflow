@@ -4,6 +4,7 @@ import {
   students,
   grades,
   studentEnrollments,
+  studentSubjectAssignments,
   academicSessions,
   schools,
 } from "@/lib/db/schema";
@@ -93,6 +94,23 @@ export default async function StudentResultsPage({ params }: Props) {
   const activeTerm = activeSession?.terms.find((t) => t.status === "active");
   const defaultTab = activeTerm?.name?.toLowerCase().replace(" ", "-") || "first";
 
+  // Results are only downloadable once every subject the student is
+  // currently assigned to has a graded (non-null total) record for the
+  // active term.
+  const assignedSubjects = activeSession
+    ? await db.query.studentSubjectAssignments.findMany({
+        where: and(
+          eq(studentSubjectAssignments.studentId, studentId),
+          eq(studentSubjectAssignments.sessionId, activeSession.id),
+          eq(studentSubjectAssignments.isActive, true)
+        ),
+      })
+    : [];
+  const activeTermGrades = activeTerm ? allGrades.filter((g) => g.termId === activeTerm.id) : [];
+  const gradedSubjectIds = new Set(activeTermGrades.filter((g) => g.total !== null).map((g) => g.subjectId));
+  const missingSubjectCount = assignedSubjects.filter((a) => !gradedSubjectIds.has(a.subjectId)).length;
+  const isResultsComplete = !!activeTerm && assignedSubjects.length > 0 && missingSubjectCount === 0;
+
   return (
     <div>
       <Topbar
@@ -104,12 +122,20 @@ export default async function StudentResultsPage({ params }: Props) {
         }
       />
       {activeSession && (
-        <div className="px-6 pt-4 pb-2 flex justify-end">
-          <DownloadResultsButton 
-            studentName={student?.name || "Student"} 
+        <div className="px-6 pt-4 pb-2 flex flex-col items-end gap-1.5">
+          <DownloadResultsButton
+            studentName={student?.name || "Student"}
             className={enrollment?.class?.name || "Unknown"}
             sessionName={activeSession.name}
+            isComplete={isResultsComplete}
           />
+          {activeTerm && !isResultsComplete && (
+            <p className="text-xs text-muted-foreground">
+              {assignedSubjects.length === 0
+                ? "No subjects assigned yet for this term."
+                : `${missingSubjectCount} of ${assignedSubjects.length} subject(s) not yet graded for ${activeTerm.name} Term.`}
+            </p>
+          )}
         </div>
       )}
       <div className="p-6 space-y-6" id="results-content">

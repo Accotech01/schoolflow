@@ -7,6 +7,7 @@ import {
   schoolAdmins,
   teachers,
   students,
+  parents,
 } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -19,7 +20,7 @@ export class AccountDeactivatedError extends CredentialsSignin {
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
-  role: z.enum(["superadmin", "school_admin", "teacher", "student"]),
+  role: z.enum(["superadmin", "school_admin", "teacher", "student", "parent"]),
   schoolSlug: z.string().optional(),
 });
 
@@ -114,6 +115,26 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               role: "student",
               schoolId: student.schoolId,
               schoolSlug: student.school.slug,
+            };
+          }
+
+          if (role === "parent") {
+            const parent = await db.query.parents.findFirst({
+              where: eq(parents.email, email),
+              with: { school: true },
+            });
+            if (!parent) return null;
+            if (schoolSlug && parent.school.slug !== schoolSlug) return null;
+            const match = await bcrypt.compare(password, parent.passwordHash);
+            if (!match) return null;
+            if (parent.status !== "active") throw new AccountDeactivatedError();
+            return {
+              id: parent.id,
+              email: parent.email,
+              name: parent.name,
+              role: "parent",
+              schoolId: parent.schoolId,
+              schoolSlug: parent.school.slug,
             };
           }
 
