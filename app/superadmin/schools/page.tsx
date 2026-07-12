@@ -19,6 +19,7 @@ import { formatDate } from "@/lib/utils";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Building2 } from "lucide-react";
+import { TableSearch } from "@/components/ui/table-search";
 import { CreateSchoolDialog } from "./create-school-dialog";
 import { DeleteSchoolButton } from "./delete-school-button";
 
@@ -37,12 +38,15 @@ export default async function SchoolsPage() {
       <Topbar title="Schools" subtitle="Manage all registered schools" />
       <div className="p-6">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3">
             <CardTitle className="text-lg">All Schools ({allSchools.length})</CardTitle>
-            <CreateSchoolDialog />
+            <div className="flex items-center gap-3">
+              <TableSearch targetId="schools-table" placeholder="Search schools..." />
+              <CreateSchoolDialog />
+            </div>
           </CardHeader>
           <CardContent>
-            <Table>
+            <Table id="schools-table">
               <TableHeader>
                 <TableRow>
                   <TableHead>School Name</TableHead>
@@ -64,8 +68,17 @@ export default async function SchoolsPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  allSchools.map((school) => (
-                    <TableRow key={school.id}>
+                  <>
+                  <TableRow data-search-empty style={{ display: "none" }}>
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                      No matching schools found.
+                    </TableCell>
+                  </TableRow>
+                  {allSchools.map((school) => (
+                    <TableRow
+                      key={school.id}
+                      data-search={`${school.name} ${school.slug} ${school.city} ${school.state}`.toLowerCase()}
+                    >
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           {school.logoUrl ? (
@@ -117,7 +130,8 @@ export default async function SchoolsPage() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))
+                  ))}
+                  </>
                 )}
               </TableBody>
             </Table>

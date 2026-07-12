@@ -17,6 +17,8 @@ import {
   Megaphone,
   Mail,
   MessageSquare,
+  ClipboardList,
+  CalendarOff,
   Settings,
 } from "lucide-react";
 
@@ -50,7 +52,9 @@ export default async function AdminLayout({ children, params }: Props) {
     { label: "Subjects", href: `${base}/subjects`, icon: "BookOpen" },
     { label: "Assignments", href: `${base}/assignments`, icon: "Link2" },
     { label: "Sessions & Terms", href: `${base}/sessions`, icon: "Calendar" },
+    { label: "Holidays & Breaks", href: `${base}/holidays`, icon: "CalendarOff" },
     { label: "Promotions", href: `${base}/promotions`, icon: "TrendingUp" },
+    { label: "Master Sheet", href: `${base}/master-sheet`, icon: "ClipboardList" },
     { label: "Announcements", href: `${base}/announcements`, icon: "Megaphone" },
     { label: "Messages", href: `${base}/messages`, icon: "Mail" },
     { label: "Complaints", href: `${base}/complaints`, icon: "MessageSquare" },

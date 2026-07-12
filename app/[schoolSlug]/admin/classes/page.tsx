@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { TableSearch } from "@/components/ui/table-search";
 import { ClassDialog } from "./class-dialog";
 import { DeleteClassButton } from "./delete-class-button";
 
@@ -40,12 +41,15 @@ export default async function ClassesPage({ params }: Props) {
       <Topbar title="Classes" subtitle="Manage school classes" />
       <div className="p-6">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3">
             <CardTitle className="text-lg">All Classes ({allClasses.length})</CardTitle>
-            <ClassDialog schoolId={schoolId} teachers={allTeachers} />
+            <div className="flex items-center gap-3">
+              <TableSearch targetId="classes-table" placeholder="Search classes..." />
+              <ClassDialog schoolId={schoolId} teachers={allTeachers} />
+            </div>
           </CardHeader>
           <CardContent>
-            <Table>
+            <Table id="classes-table">
               <TableHeader>
                 <TableRow>
                   <TableHead>Class Name</TableHead>
@@ -64,8 +68,17 @@ export default async function ClassesPage({ params }: Props) {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  allClasses.map((cls) => (
-                    <TableRow key={cls.id}>
+                  <>
+                  <TableRow data-search-empty style={{ display: "none" }}>
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      No matching classes found.
+                    </TableCell>
+                  </TableRow>
+                  {allClasses.map((cls) => (
+                    <TableRow
+                      key={cls.id}
+                      data-search={`${cls.name} ${cls.classTeacher?.name || ""}`.toLowerCase()}
+                    >
                       <TableCell className="font-medium">{cls.name}</TableCell>
                       <TableCell>{cls.level}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{cls.description || "—"}</TableCell>
@@ -86,7 +99,8 @@ export default async function ClassesPage({ params }: Props) {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))
+                  ))}
+                  </>
                 )}
               </TableBody>
             </Table>

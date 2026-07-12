@@ -1,0 +1,70 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { deleteHoliday } from "@/actions/holidays";
+
+export function DeleteHolidayButton({ holidayId, name }: { holidayId: string; name: string }) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+
+  const handleDelete = async () => {
+    setLoading(true);
+    try {
+      const result = await deleteHoliday(holidayId);
+      if (result.success) {
+        toast.success("Holiday removed");
+        router.refresh();
+      } else {
+        toast.error(result.error || "Failed to remove holiday");
+      }
+    } catch {
+      toast.error("An error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button size="sm" variant="ghost" className="text-red-600 hover:bg-red-50 hover:text-red-700">
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Remove Holiday</AlertDialogTitle>
+          <AlertDialogDescription>
+            Are you sure you want to remove <strong>{name}</strong>? Attendance can be marked on
+            these dates again, and any past attendance already recorded there will start counting
+            again.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <div className="flex gap-3 justify-end">
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleDelete}
+            disabled={loading}
+            className="bg-red-600 hover:bg-red-700 text-white"
+          >
+            {loading ? "Removing..." : "Remove"}
+          </AlertDialogAction>
+        </div>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}

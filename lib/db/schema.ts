@@ -646,6 +646,25 @@ export const attendanceRecords = pgTable(
   ]
 );
 
+// Public holidays / midterm breaks the school admin declares. Any date
+// falling within one of these ranges is excluded from attendance — it can't
+// be marked, and any existing records on that date don't count toward a
+// student's attendance total.
+export const schoolHolidays = pgTable(
+  "school_holidays",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    startDate: timestamp("start_date").notNull(),
+    endDate: timestamp("end_date").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [index("school_holidays_school_idx").on(table.schoolId)]
+);
+
 // ─── Platform Messages (superadmin → school admins) ───────────────────────────
 export const platformMessages = pgTable(
   "platform_messages",
@@ -717,6 +736,14 @@ export const schoolsRelations = relations(schools, ({ many }) => ({
   promotions: many(promotions),
   announcements: many(announcements),
   complaints: many(complaints),
+  holidays: many(schoolHolidays),
+}));
+
+export const schoolHolidaysRelations = relations(schoolHolidays, ({ one }) => ({
+  school: one(schools, {
+    fields: [schoolHolidays.schoolId],
+    references: [schools.id],
+  }),
 }));
 
 export const schoolAdminsRelations = relations(schoolAdmins, ({ one, many }) => ({

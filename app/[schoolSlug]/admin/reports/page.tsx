@@ -4,6 +4,7 @@ import {
   students, grades, academicSessions, terms, classes, subjects, studentEnrollments,
 } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
+import { getStudentClassPosition } from "@/actions/reports";
 import { Topbar } from "@/components/nav/topbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -65,6 +66,10 @@ export default async function ReportsPage({ params, searchParams }: Props) {
       })
     : [];
 
+  const positionInfo = selectedStudent && activeTerm
+    ? await getStudentClassPosition(selectedStudent.id, activeTerm.id)
+    : null;
+
   return (
     <div>
       <Topbar title="Reports" subtitle="Generate and print student report cards" />
@@ -118,6 +123,8 @@ export default async function ReportsPage({ params, searchParams }: Props) {
                     session={activeSession?.name || ""}
                     term={activeTerm?.name || ""}
                     className={selectedStudent.enrollments[0]?.class.name || ""}
+                    position={positionInfo?.position}
+                    totalRanked={positionInfo?.totalRanked}
                   />
                 </div>
               </div>

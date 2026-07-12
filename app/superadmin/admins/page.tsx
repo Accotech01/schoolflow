@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, isPaymentOverdue } from "@/lib/utils";
 import { Users, Building2, Mail, Calendar } from "lucide-react";
+import { TableSearch } from "@/components/ui/table-search";
 import { ManageAdminAccessDialog } from "./manage-access-dialog";
 
 export default async function AdminsPage() {
@@ -63,8 +64,9 @@ export default async function AdminsPage() {
 
         {/* Admins Table */}
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3">
             <CardTitle className="text-base">All Administrators</CardTitle>
+            <TableSearch targetId="superadmin-admins-table" placeholder="Search administrators..." />
           </CardHeader>
           <CardContent>
             {admins.length === 0 ? (
@@ -73,7 +75,7 @@ export default async function AdminsPage() {
               </p>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table id="superadmin-admins-table" className="w-full text-sm">
                   <thead>
                     <tr className="bg-gray-50 border-b">
                       <th className="text-left px-4 py-3 font-medium">Administrator</th>
@@ -87,9 +89,15 @@ export default async function AdminsPage() {
                     </tr>
                   </thead>
                   <tbody>
+                    <tr data-search-empty style={{ display: "none" }}>
+                      <td colSpan={8} className="text-center py-8 text-muted-foreground">
+                        No matching administrators found.
+                      </td>
+                    </tr>
                     {admins.map((admin, i) => (
                       <tr
                         key={admin.id}
+                        data-search={`${admin.name} ${admin.email} ${admin.school?.name || ""}`.toLowerCase()}
                         className={`border-b hover:bg-gray-50 ${i % 2 === 0 ? "bg-white" : "bg-gray-50/30"}`}
                       >
                         <td className="px-4 py-3">

@@ -9,12 +9,13 @@ import {
   schools,
 } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
+import { getStudentClassPosition } from "@/actions/reports";
 import { Topbar } from "@/components/nav/topbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { calculateGrade, getGradeColor, cn } from "@/lib/utils";
+import { calculateGrade, getGradeColor, ordinal, cn } from "@/lib/utils";
 import { DownloadResultsButton } from "./download-results-button";
 
 interface Props {
@@ -74,14 +75,19 @@ export default async function StudentResultsPage({ params }: Props) {
       .sort((a, b) => a.subject.name.localeCompare(b.subject.name)),
   }));
 
-  // Calculate per-term stats
-  const termStats = gradesByTerm.map(({ term, grades: termGrades }) => {
+  // Calculate per-term stats, including class position (ranked by average
+  // among the student's whole class — the same ranking shown on the
+  // school admin's master sheet for this term).
+  const termPositions = await Promise.all(
+    sessionTerms.map((term) => getStudentClassPosition(studentId, term.id))
+  );
+  const termStats = gradesByTerm.map(({ term, grades: termGrades }, idx) => {
     const valid = termGrades.filter((g) => g.total !== null);
     const avg = valid.length > 0
       ? valid.reduce((s, g) => s + parseFloat(g.total || "0"), 0) / valid.length
       : 0;
     const { grade, remark } = calculateGrade(avg);
-    return { term, grades: termGrades, avg, grade, remark };
+    return { term, grades: termGrades, avg, grade, remark, position: termPositions[idx] };
   });
 
   // Overall session average
@@ -162,7 +168,7 @@ export default async function StudentResultsPage({ params }: Props) {
           <>
             {/* Session Summary */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {termStats.map(({ term, grades: tg, avg, grade, remark }) => (
+              {termStats.map(({ term, grades: tg, avg, grade, remark, position }) => (
                 <Card key={term.id} className={term.status === "active" ? "border-blue-300 bg-blue-50/30" : ""}>
                   <CardContent className="pt-4">
                     <div className="flex items-center justify-between mb-2">
@@ -185,6 +191,11 @@ export default async function StudentResultsPage({ params }: Props) {
                       <>
                         <p className="text-2xl font-bold">{avg.toFixed(1)}%</p>
                         <p className="text-xs text-muted-foreground">{remark} · {tg.filter(g => g.total !== null).length} subjects</p>
+                        {position?.position && (
+                          <p className="text-xs text-blue-700 font-medium mt-1">
+                            {ordinal(position.position)} of {position.totalRanked} in class
+                          </p>
+                        )}
                       </>
                     ) : (
                       <p className="text-sm text-muted-foreground">No grades yet</p>
@@ -231,7 +242,7 @@ export default async function StudentResultsPage({ params }: Props) {
                     ))}
                   </TabsList>
 
-                  {termStats.map(({ term, grades: termGrades, avg }) => (
+                  {termStats.map(({ term, grades: termGrades, avg, position }) => (
                     <TabsContent
                       key={term.id}
                       value={term.name.toLowerCase().replace(" ", "-")}
@@ -243,6 +254,14 @@ export default async function StudentResultsPage({ params }: Props) {
                         </p>
                       ) : (
                         <>
+                          {position?.position && (
+                            <p className="text-sm mb-3">
+                              <span className="text-muted-foreground">Class Position: </span>
+                              <span className="font-bold text-blue-700">
+                                {ordinal(position.position)} of {position.totalRanked}
+                              </span>
+                            </p>
+                          )}
                           <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                               <thead>

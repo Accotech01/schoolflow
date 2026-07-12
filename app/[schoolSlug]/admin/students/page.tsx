@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { TableSearch } from "@/components/ui/table-search";
 import { formatDate } from "@/lib/utils";
 import { FileText } from "lucide-react";
 import Link from "next/link";
@@ -85,12 +86,15 @@ export default async function StudentsPage({ params }: Props) {
       <Topbar title="Students" subtitle={`${allStudents.length} registered students`} />
       <div className="p-6">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3">
             <CardTitle className="text-lg">All Students</CardTitle>
-            <StudentDialog schoolId={schoolId} />
+            <div className="flex items-center gap-3">
+              <TableSearch targetId="students-table" placeholder="Search students..." />
+              <StudentDialog schoolId={schoolId} />
+            </div>
           </CardHeader>
           <CardContent>
-            <Table>
+            <Table id="students-table">
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
@@ -112,10 +116,19 @@ export default async function StudentsPage({ params }: Props) {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  allStudents.map((student) => {
+                  <>
+                  <TableRow data-search-empty style={{ display: "none" }}>
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                      No matching students found.
+                    </TableCell>
+                  </TableRow>
+                  {allStudents.map((student) => {
                     const activeEnrollment = student.enrollments[0];
                     return (
-                      <TableRow key={student.id}>
+                      <TableRow
+                        key={student.id}
+                        data-search={`${student.name} ${student.admissionNumber} ${student.email}`.toLowerCase()}
+                      >
                         <TableCell className="font-medium">{student.name}</TableCell>
                         <TableCell>
                           <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">
@@ -191,7 +204,8 @@ export default async function StudentsPage({ params }: Props) {
                         </TableCell>
                       </TableRow>
                     );
-                  })
+                  })}
+                  </>
                 )}
               </TableBody>
             </Table>

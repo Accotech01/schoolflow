@@ -13,7 +13,8 @@ import { eq, and, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { z } from "zod";
-import { calculateGrade } from "@/lib/utils";
+import { calculateGrade, findHolidayForDate } from "@/lib/utils";
+import { getHolidaysForSchool } from "./holidays";
 
 function startOfDay(dateStr: string) {
   const d = new Date(dateStr);
@@ -55,10 +56,16 @@ export async function getMyClassTeacherInfo() {
 }
 
 // Roster for a class (active enrollments for the given session) with any
-// attendance already recorded for the given date.
+// attendance already recorded for the given date, plus whether the date
+// falls on a declared holiday (in which case attendance shouldn't be
+// marked at all).
 export async function getClassRosterForDate(classId: string, termId: string, sessionId: string, date: string) {
   const owned = await requireOwnedClass(classId);
-  if (!owned) return { roster: [], statuses: {} as Record<string, string> };
+  if (!owned) return { roster: [], statuses: {} as Record<string, string>, holiday: null as { name: string } | null };
+
+  const holidays = await getHolidaysForSchool(owned.session.user.schoolId!);
+  const day = startOfDay(date);
+  const holiday = findHolidayForDate(day, holidays);
 
   const enrollments = await db.query.studentEnrollments.findMany({
     where: and(
@@ -73,14 +80,13 @@ export async function getClassRosterForDate(classId: string, termId: string, ses
     .map((e) => ({ id: e.student.id, name: e.student.name, admissionNumber: e.student.admissionNumber }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  const day = startOfDay(date);
   const existing = await db.query.attendanceRecords.findMany({
     where: and(eq(attendanceRecords.classId, classId), eq(attendanceRecords.termId, termId), eq(attendanceRecords.date, day)),
   });
   const statuses: Record<string, string> = {};
   existing.forEach((r) => (statuses[r.studentId] = r.status));
 
-  return { roster, statuses };
+  return { roster, statuses, holiday: holiday ? { name: holiday.name } : null };
 }
 
 const markAttendanceSchema = z.object({
@@ -103,6 +109,13 @@ export async function markAttendance(data: z.infer<typeof markAttendanceSchema>)
   if (!owned) return { success: false, error: "Unauthorized: you are not this class's teacher" };
 
   const day = startOfDay(parsed.data.date);
+
+  const holidays = await getHolidaysForSchool(owned.session.user.schoolId!);
+  const holiday = findHolidayForDate(day, holidays);
+  if (holiday) {
+    return { success: false, error: `Cannot mark attendance — ${day.toDateString()} is set as a holiday: ${holiday.name}` };
+  }
+
   const rows = parsed.data.records.map((r) => ({
     studentId: r.studentId,
     classId: parsed.data.classId,
@@ -132,8 +145,8 @@ export async function markAttendance(data: z.infer<typeof markAttendanceSchema>)
   return { success: true };
 }
 
-async function summarizeClass(classId: string, termId: string, maxScore: number) {
-  const [records, enrollments] = await Promise.all([
+async function summarizeClass(classId: string, termId: string, maxScore: number, schoolId: string) {
+  const [records, enrollments, holidays] = await Promise.all([
     db.query.attendanceRecords.findMany({
       where: and(eq(attendanceRecords.classId, classId), eq(attendanceRecords.termId, termId)),
     }),
@@ -141,11 +154,16 @@ async function summarizeClass(classId: string, termId: string, maxScore: number)
       where: and(eq(studentEnrollments.classId, classId), eq(studentEnrollments.isActive, true)),
       with: { student: true },
     }),
+    getHolidaysForSchool(schoolId),
   ]);
+
+  // Holidays/midterm breaks never count toward a student's attendance,
+  // even if a record was marked on that date before the holiday was set.
+  const countableRecords = records.filter((r) => !findHolidayForDate(r.date, holidays));
 
   return enrollments
     .map((e) => {
-      const studentRecords = records.filter((r) => r.studentId === e.studentId);
+      const studentRecords = countableRecords.filter((r) => r.studentId === e.studentId);
       const totalMarked = studentRecords.length;
       const present = studentRecords.filter((r) => r.status === "present").length;
       const late = studentRecords.filter((r) => r.status === "late").length;
@@ -172,7 +190,7 @@ async function summarizeClass(classId: string, termId: string, maxScore: number)
 export async function getClassAttendanceSummary(classId: string, termId: string) {
   const owned = await requireOwnedClass(classId);
   if (!owned) return [];
-  return summarizeClass(classId, termId, parseFloat(owned.cls.attendanceMaxScore));
+  return summarizeClass(classId, termId, parseFloat(owned.cls.attendanceMaxScore), owned.cls.schoolId);
 }
 
 // A student's own attendance summary for the school's current active term.
@@ -197,7 +215,12 @@ export async function getMyAttendanceSummary() {
   });
   if (!enrollment) return null;
 
-  const summary = await summarizeClass(enrollment.classId, activeTerm.id, parseFloat(enrollment.class.attendanceMaxScore));
+  const summary = await summarizeClass(
+    enrollment.classId,
+    activeTerm.id,
+    parseFloat(enrollment.class.attendanceMaxScore),
+    session.user.schoolId
+  );
   return summary.find((s) => s.studentId === session.user.id) || null;
 }
 
@@ -229,7 +252,12 @@ export async function getChildAttendanceSummary(studentId: string) {
   });
   if (!enrollment) return null;
 
-  const summary = await summarizeClass(enrollment.classId, activeTerm.id, parseFloat(enrollment.class.attendanceMaxScore));
+  const summary = await summarizeClass(
+    enrollment.classId,
+    activeTerm.id,
+    parseFloat(enrollment.class.attendanceMaxScore),
+    session.user.schoolId
+  );
   return summary.find((s) => s.studentId === studentId) || null;
 }
 
@@ -251,7 +279,7 @@ export async function finalizeTermAttendance(classId: string, termId: string, ma
     .set({ attendanceMaxScore: String(maxScore), updatedAt: new Date() })
     .where(eq(classes.id, classId));
 
-  const summary = await summarizeClass(classId, termId, maxScore);
+  const summary = await summarizeClass(classId, termId, maxScore, owned.cls.schoolId);
 
   let studentsUpdated = 0;
   let gradesUpdated = 0;

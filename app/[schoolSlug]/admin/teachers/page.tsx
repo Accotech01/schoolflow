@@ -8,6 +8,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { TableSearch } from "@/components/ui/table-search";
 import { formatDate } from "@/lib/utils";
 import { TeacherDialog } from "./teacher-dialog";
 import { DeleteTeacherButton } from "./delete-teacher-button";
@@ -31,12 +32,15 @@ export default async function TeachersPage({ params }: Props) {
       <Topbar title="Teachers" subtitle={`${allTeachers.length} registered teachers`} />
       <div className="p-6">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3">
             <CardTitle className="text-lg">All Teachers</CardTitle>
-            <TeacherDialog schoolId={schoolId} />
+            <div className="flex items-center gap-3">
+              <TableSearch targetId="teachers-table" placeholder="Search teachers..." />
+              <TeacherDialog schoolId={schoolId} />
+            </div>
           </CardHeader>
           <CardContent>
-            <Table>
+            <Table id="teachers-table">
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
@@ -58,8 +62,17 @@ export default async function TeachersPage({ params }: Props) {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  allTeachers.map((teacher) => (
-                    <TableRow key={teacher.id}>
+                  <>
+                  <TableRow data-search-empty style={{ display: "none" }}>
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                      No matching teachers found.
+                    </TableCell>
+                  </TableRow>
+                  {allTeachers.map((teacher) => (
+                    <TableRow
+                      key={teacher.id}
+                      data-search={`${teacher.name} ${teacher.email} ${teacher.employeeId || ""}`.toLowerCase()}
+                    >
                       <TableCell className="font-medium">{teacher.name}</TableCell>
                       <TableCell>
                         <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">
@@ -85,7 +98,8 @@ export default async function TeachersPage({ params }: Props) {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))
+                  ))}
+                  </>
                 )}
               </TableBody>
             </Table>

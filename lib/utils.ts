@@ -31,6 +31,37 @@ export function isPromotionEligible(grade: string): boolean {
   return ["A1", "B2", "B3", "C4", "C5", "C6"].includes(grade);
 }
 
+// Whether the given day falls within any of the school's declared holidays,
+// and which one. Dates are compared at day granularity.
+export function findHolidayForDate<T extends { startDate: Date | string; endDate: Date | string }>(
+  date: Date | string,
+  holidays: T[]
+): T | null {
+  const day = new Date(date);
+  day.setUTCHours(0, 0, 0, 0);
+
+  return (
+    holidays.find((h) => {
+      const start = new Date(h.startDate);
+      start.setUTCHours(0, 0, 0, 0);
+      const end = new Date(h.endDate);
+      end.setUTCHours(0, 0, 0, 0);
+      return day.getTime() >= start.getTime() && day.getTime() <= end.getTime();
+    }) || null
+  );
+}
+
+export function ordinal(n: number): string {
+  const rem100 = n % 100;
+  if (rem100 >= 11 && rem100 <= 13) return `${n}th`;
+  switch (n % 10) {
+    case 1: return `${n}st`;
+    case 2: return `${n}nd`;
+    case 3: return `${n}rd`;
+    default: return `${n}th`;
+  }
+}
+
 export function getGradeColor(grade: string): string {
   if (["A1"].includes(grade)) return "text-emerald-600 bg-emerald-50";
   if (["B2", "B3"].includes(grade)) return "text-blue-600 bg-blue-50";

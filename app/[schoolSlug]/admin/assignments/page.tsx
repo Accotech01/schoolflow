@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { TableSearch } from "@/components/ui/table-search";
 import { AssignTeacherDialog } from "./assign-teacher-dialog";
 import { RemoveAssignmentButton } from "./remove-assignment-button";
 
@@ -60,21 +61,24 @@ export default async function AssignmentsPage({ params }: Props) {
           </Card>
         ) : (
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3">
               <CardTitle className="text-lg">
                 Assignments — {activeSession.name}
                 <span className="text-sm font-normal text-muted-foreground ml-2">({assignments.length} total)</span>
               </CardTitle>
-              <AssignTeacherDialog
-                schoolId={schoolId}
-                sessionId={activeSession.id}
-                teachers={allTeachers}
-                classes={allClasses}
-                subjects={allSubjects}
-              />
+              <div className="flex items-center gap-3">
+                <TableSearch targetId="assignments-table" placeholder="Search assignments..." />
+                <AssignTeacherDialog
+                  schoolId={schoolId}
+                  sessionId={activeSession.id}
+                  teachers={allTeachers}
+                  classes={allClasses}
+                  subjects={allSubjects}
+                />
+              </div>
             </CardHeader>
             <CardContent>
-              <Table>
+              <Table id="assignments-table">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Teacher</TableHead>
@@ -91,8 +95,17 @@ export default async function AssignmentsPage({ params }: Props) {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    assignments.map((a) => (
-                      <TableRow key={a.id}>
+                    <>
+                    <TableRow data-search-empty style={{ display: "none" }}>
+                      <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                        No matching assignments found.
+                      </TableCell>
+                    </TableRow>
+                    {assignments.map((a) => (
+                      <TableRow
+                        key={a.id}
+                        data-search={`${a.teacher.name} ${a.class.name} ${a.subject.name} ${a.subject.code}`.toLowerCase()}
+                      >
                         <TableCell className="font-medium">{a.teacher.name}</TableCell>
                         <TableCell>{a.class.name}</TableCell>
                         <TableCell>
@@ -105,7 +118,8 @@ export default async function AssignmentsPage({ params }: Props) {
                           <RemoveAssignmentButton assignmentId={a.id} label={`${a.teacher.name} → ${a.subject.name}`} />
                         </TableCell>
                       </TableRow>
-                    ))
+                    ))}
+                    </>
                   )}
                 </TableBody>
               </Table>

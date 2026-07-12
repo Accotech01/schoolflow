@@ -57,6 +57,13 @@
       "when": 1783406399082,
       "tag": "0007_overconfident_leech",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1783508662682,
+      "tag": "0008_petite_patriot",
+      "breakpoints": true
     }
   ]
 }

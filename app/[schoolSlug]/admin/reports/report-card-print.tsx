@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { getGradeColor, cn } from "@/lib/utils";
+import { getGradeColor, calculateGrade, ordinal, cn } from "@/lib/utils";
 import { Printer } from "lucide-react";
 
 interface Grade {
@@ -28,12 +28,15 @@ interface Props {
   session: string;
   term: string;
   className: string;
+  position?: number | null;
+  totalRanked?: number;
 }
 
-export function ReportCardPrint({ student, grades, school, session, term, className }: Props) {
+export function ReportCardPrint({ student, grades, school, session, term, className, position, totalRanked }: Props) {
   const totalScore = grades.reduce((sum, g) => sum + parseFloat(g.total || "0"), 0);
   const averageScore = grades.length > 0 ? (totalScore / grades.length).toFixed(1) : "0";
   const passedSubjects = grades.filter((g) => parseFloat(g.total || "0") >= 50).length;
+  const overallGrade = calculateGrade(parseFloat(averageScore));
 
   return (
     <Card>
@@ -132,18 +135,28 @@ export function ReportCardPrint({ student, grades, school, session, term, classN
         </div>
 
         {/* Summary */}
-        <div className="grid grid-cols-3 gap-4 mb-4 text-sm">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-sm">
           <div className="bg-blue-50 rounded-lg p-3 text-center">
             <p className="text-2xl font-bold text-blue-600">{averageScore}%</p>
             <p className="text-xs text-blue-700">Average Score</p>
           </div>
+          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: "rgb(243 244 246)" }}>
+            <p className={cn("text-2xl font-bold", getGradeColor(overallGrade.grade).split(" ")[0])}>
+              {overallGrade.grade}
+            </p>
+            <p className="text-xs text-gray-600">Overall Grade — {overallGrade.remark}</p>
+          </div>
+          <div className="bg-amber-50 rounded-lg p-3 text-center">
+            <p className="text-2xl font-bold text-amber-600">
+              {position ? ordinal(position) : "—"}
+            </p>
+            <p className="text-xs text-amber-700">
+              Class Position{totalRanked ? ` of ${totalRanked}` : ""}
+            </p>
+          </div>
           <div className="bg-green-50 rounded-lg p-3 text-center">
             <p className="text-2xl font-bold text-green-600">{passedSubjects}/{grades.length}</p>
             <p className="text-xs text-green-700">Subjects Passed</p>
-          </div>
-          <div className="bg-purple-50 rounded-lg p-3 text-center">
-            <p className="text-2xl font-bold text-purple-600">{grades.length}</p>
-            <p className="text-xs text-purple-700">Total Subjects</p>
           </div>
         </div>
 

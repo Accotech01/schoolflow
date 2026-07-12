@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, Clock, CalendarOff } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getClassRosterForDate, markAttendance } from "@/actions/attendance";
@@ -47,6 +47,7 @@ export function AttendanceEntryTable({ classId, termId, sessionId, minDate, maxD
   const [date, setDate] = useState(todayIso());
   const [roster, setRoster] = useState<Student[]>([]);
   const [statuses, setStatuses] = useState<Record<string, Status>>({});
+  const [holiday, setHoliday] = useState<{ name: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -54,9 +55,10 @@ export function AttendanceEntryTable({ classId, termId, sessionId, minDate, maxD
     let cancelled = false;
     setLoading(true);
     getClassRosterForDate(classId, termId, sessionId, date)
-      .then(({ roster, statuses }) => {
+      .then(({ roster, statuses, holiday }) => {
         if (cancelled) return;
         setRoster(roster);
+        setHoliday(holiday);
         const next: Record<string, Status> = {};
         roster.forEach((s) => {
           next[s.id] = (statuses[s.id] as Status) || "present";
@@ -117,6 +119,14 @@ export function AttendanceEntryTable({ classId, termId, sessionId, minDate, maxD
       <CardContent>
         {loading ? (
           <p className="text-sm text-muted-foreground py-8 text-center">Loading roster...</p>
+        ) : holiday ? (
+          <div className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-blue-800">
+            <CalendarOff className="h-5 w-5 flex-shrink-0" />
+            <p className="text-sm">
+              <strong>{holiday.name}</strong> — this date is set as a holiday/break, so attendance
+              can&apos;t be marked and no student will be counted absent for it.
+            </p>
+          </div>
         ) : roster.length === 0 ? (
           <p className="text-sm text-muted-foreground py-8 text-center">No students enrolled in this class yet.</p>
         ) : (

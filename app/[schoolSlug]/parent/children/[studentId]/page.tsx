@@ -1,13 +1,14 @@
 import { notFound } from "next/navigation";
 import { getChildProfile, getChildGrades } from "@/actions/parents";
 import { getChildAttendanceSummary } from "@/actions/attendance";
+import { getStudentClassPosition } from "@/actions/reports";
 import { Topbar } from "@/components/nav/topbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CalendarCheck } from "lucide-react";
+import { ArrowLeft, CalendarCheck, Award } from "lucide-react";
 import Link from "next/link";
-import { calculateGrade, getGradeColor, formatDate, cn } from "@/lib/utils";
+import { calculateGrade, getGradeColor, formatDate, ordinal, cn } from "@/lib/utils";
 
 interface Props {
   params: Promise<{ schoolSlug: string; studentId: string }>;
@@ -30,6 +31,7 @@ export default async function ChildDetailPage({ params }: Props) {
   const { grade: avgGrade, remark: avgRemark } = calculateGrade(average);
 
   const attendance = await getChildAttendanceSummary(studentId);
+  const positionInfo = activeTerm ? await getStudentClassPosition(studentId, activeTerm.id) : null;
 
   return (
     <div>
@@ -41,7 +43,7 @@ export default async function ChildDetailPage({ params }: Props) {
           </Button>
         </Link>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardContent className="pt-4">
               <p className="text-sm text-muted-foreground">Admission Number</p>
@@ -70,6 +72,20 @@ export default async function ChildDetailPage({ params }: Props) {
                 )}
               </div>
               <CalendarCheck className="h-6 w-6 text-blue-500" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Class Position</p>
+                <p className="text-lg font-bold">
+                  {positionInfo?.position ? ordinal(positionInfo.position) : "N/A"}
+                </p>
+                {positionInfo?.position && (
+                  <p className="text-xs text-muted-foreground">of {positionInfo.totalRanked} students</p>
+                )}
+              </div>
+              <Award className="h-6 w-6 text-amber-500" />
             </CardContent>
           </Card>
         </div>

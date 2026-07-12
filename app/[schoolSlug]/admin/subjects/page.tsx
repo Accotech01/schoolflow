@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { TableSearch } from "@/components/ui/table-search";
 import { SubjectDialog } from "./subject-dialog";
 import { DeleteSubjectButton } from "./delete-subject-button";
 
@@ -29,12 +30,15 @@ export default async function SubjectsPage({ params }: Props) {
       <Topbar title="Subjects" subtitle="Manage school subjects" />
       <div className="p-6 space-y-6">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3">
             <CardTitle className="text-lg">All Subjects ({allSubjects.length})</CardTitle>
-            <SubjectDialog schoolId={schoolId} />
+            <div className="flex items-center gap-3">
+              <TableSearch targetId="subjects-table" placeholder="Search subjects..." />
+              <SubjectDialog schoolId={schoolId} />
+            </div>
           </CardHeader>
           <CardContent>
-            <Table>
+            <Table id="subjects-table">
               <TableHeader>
                 <TableRow>
                   <TableHead>Subject Name</TableHead>
@@ -51,8 +55,17 @@ export default async function SubjectsPage({ params }: Props) {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  allSubjects.map((subject) => (
-                    <TableRow key={subject.id}>
+                  <>
+                  <TableRow data-search-empty style={{ display: "none" }}>
+                    <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                      No matching subjects found.
+                    </TableCell>
+                  </TableRow>
+                  {allSubjects.map((subject) => (
+                    <TableRow
+                      key={subject.id}
+                      data-search={`${subject.name} ${subject.code}`.toLowerCase()}
+                    >
                       <TableCell className="font-medium">{subject.name}</TableCell>
                       <TableCell>
                         <code className="text-xs font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
@@ -67,7 +80,8 @@ export default async function SubjectsPage({ params }: Props) {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))
+                  ))}
+                  </>
                 )}
               </TableBody>
             </Table>

@@ -1,0 +1,174 @@
+================================================================================
+ EDUMANAGE NG — SCHOOL MANAGEMENT PLATFORM
+ Feature Overview
+================================================================================
+
+OVERVIEW
+--------------------------------------------------------------------------------
+EduManage NG is a school management platform built specifically for the
+Nigerian curriculum — WAEC grading, the Primary/JSS/SS class structure, and
+the academic-session-and-term rhythm schools already run on. It replaces the
+spreadsheets, paper attendance registers, printed report cards, and scattered
+WhatsApp groups most schools depend on with one system that the school office,
+its teachers, its students, and its parents can all log into.
+
+Every feature below is already built and running. Access is role-based: a
+School Administrator, a Teacher, a Student, and a Parent each get their own
+tailored portal, and each only ever sees the data that belongs to them.
+
+
+--------------------------------------------------------------------------------
+1. SCHOOL ADMINISTRATOR
+--------------------------------------------------------------------------------
+Student & Staff Records
+  - Register, edit, and manage full student records: bio-data, guardian
+    details, admission numbers, class and subject enrollment
+  - Register and manage teacher records and profiles
+  - Optionally create a parent portal login at the exact moment a student is
+    registered — no separate onboarding step, and siblings automatically
+    share one parent account
+
+Academic Structure
+  - Create classes (the full Primary 1 through SS 3 structure is built in)
+    and subjects, and assign a dedicated class teacher to each class
+  - Build the teacher-class-subject assignment matrix for the term
+  - Enroll students into classes and subjects per academic session
+  - Create an academic session and have all three terms generated
+    automatically; advance the active term and set each term's start/end
+    dates
+
+End-of-Session Promotions
+  - An automatic promotion engine calculates every student's average at
+    term/session end and recommends promotion or repetition
+  - Review and finalize border-line cases with one click
+  - Execute promotions to move every approved student into their new class
+    for the new session — no manual re-enrollment
+
+Master Sheet & Class Ranking
+  - One view per class: every student's subject-by-subject totals, grand
+    total, average, WAEC grade, and class position — sorted best to worst
+  - The school's best-performing class for the term is automatically
+    identified and highlighted
+
+Attendance Oversight
+  - Declare public holidays and midterm breaks once; those dates are
+    automatically excluded from every student's attendance record
+    school-wide — no student is ever penalized for a day the school was
+    closed
+
+Documents, On Demand
+  - Generate a formatted, printable admission letter for any student
+  - Generate official, print-ready report cards per student per term,
+    complete with overall grade and class position
+
+Communication
+  - Broadcast announcements to students, teachers, or both — school-wide
+    or targeted to a single class
+  - A complaints & suggestions inbox collects messages from parents;
+    respond directly, and the response is visible back to the parent
+  - A live notification inbox surfaces announcements and platform updates
+
+Billing Visibility
+  - See exactly how much is currently due and when, calculated
+    automatically from the number of actively enrolled students
+
+
+--------------------------------------------------------------------------------
+2. TEACHERS
+--------------------------------------------------------------------------------
+Dashboard
+  - Assigned classes and subjects at a glance, plus recent grading activity
+
+Grading
+  - Enter Test 1, Test 2, Assignment, Attendance, and Exam scores per
+    student, per subject, per term
+  - Component weighting is configurable per subject
+  - WAEC-style letter grades (A1-F9) are calculated automatically the
+    moment a score is saved
+
+Class Teacher Tools (for teachers assigned as a class's homeroom teacher)
+  - Mark daily attendance for an entire class in seconds — Present, Late,
+    or Absent
+  - Attendance can never be marked on a day the school admin has declared
+    a holiday or break
+  - Convert a term's attendance into a real score, on any scale the
+    teacher sets, and post it directly into every student's report card —
+    no manual re-entry required
+
+Teaching Materials & Communication
+  - Send announcements directly to an entire class
+  - Organize lesson notes by week, class, subject, and term
+  - Share learning resource links (videos, articles, documents) with
+    students
+  - Manage a personal profile and receive a live notification inbox
+
+
+--------------------------------------------------------------------------------
+3. STUDENTS
+--------------------------------------------------------------------------------
+  - A personal dashboard: current class, term average, current grade,
+    attendance score, and a clear banner showing which term is active
+  - A full results view: per-term, per-subject score breakdown, WAEC
+    grade, teacher remarks, and term/session averages
+  - Full transparency on standing: every result shows the student's exact
+    position within their class
+  - One-click PDF download of results — automatically unlocked only once
+    every subject has actually been graded, so nothing incomplete ever
+    goes out
+  - An announcements feed combining school-wide and class-specific updates
+  - A resource library of lesson notes and learning links, organized by
+    subject
+  - A personal profile
+
+
+--------------------------------------------------------------------------------
+4. PARENTS
+--------------------------------------------------------------------------------
+  - A dedicated login, created by the school the moment their child is
+    registered — no separate sign-up process required
+  - One account automatically covers every child a parent has at the
+    school
+  - A dashboard listing every linked child with an at-a-glance summary
+  - Full visibility into each child: current class, term-by-term results,
+    overall grade, class position, and attendance score
+  - A direct line to the school: submit a complaint or suggestion,
+    optionally about a specific child, and see the school's response as
+    soon as it's addressed
+
+
+--------------------------------------------------------------------------------
+PLATFORM-WIDE HIGHLIGHTS
+--------------------------------------------------------------------------------
+  - True multi-tenancy: every school runs in its own branded space (logo,
+    name, unique web address) with fully isolated data
+  - Built for the Nigerian curriculum from the ground up: WAEC grading and
+    the Primary/JSS/SS class structure are native, not bolted on
+  - Role-based access enforced at every layer: four tailored portals, each
+    showing only what's relevant to that person
+  - Print-ready documents throughout: report cards, admission letters, and
+    master sheets are all formatted for clean printing straight from the
+    browser
+  - A modern, fast experience: pages render with real data immediately —
+    no spinners for basic navigation
+  - Built-in communication at every level: announcements, direct
+    messages, and a complaints channel keep the school office, teachers,
+    students, and families connected without a third-party app
+
+
+--------------------------------------------------------------------------------
+THE PITCH
+--------------------------------------------------------------------------------
+Today, a typical school's data lives in three places at once: a paper
+register in the front office, an Excel sheet a teacher keeps on their own
+laptop, and a WhatsApp group parents mute within a week. Report cards are
+handwritten or retyped every term. Nobody outside the office knows a
+payment is due until it's overdue. Parents find out how their child is
+doing only at the next parent-teacher meeting.
+
+EduManage NG puts all of it in one place: one record per student that a
+teacher grades, an admin reviews, and a parent can actually see — the
+same day it changes. Attendance, results, promotions, communication, and
+billing all run through a single system built specifically around how a
+Nigerian school already operates, so adopting it doesn't mean changing
+how the school works — just how much visibility everyone has into it.
+================================================================================
